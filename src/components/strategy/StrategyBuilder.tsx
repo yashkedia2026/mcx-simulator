@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { LegRow } from './LegRow';
+import { SaveLoadPanel } from './SaveLoadPanel';
 import { MCX_INSTRUMENTS, DEFAULT_INSTRUMENT, getStrikeGap, roundToStrike } from '@/data/instruments';
 import { PREBUILT_STRATEGIES } from '@/lib/strategies';
 import { black76Price } from '@/lib/black76';
+import { useSavedStrategies } from '@/hooks/useSavedStrategies';
 import type { OptionLeg } from '@/types';
 
 let legCounter = 0;
@@ -46,6 +48,7 @@ export function StrategyBuilder({
   onRateChange,
 }: Props) {
   const [selectedStrategy, setSelectedStrategy] = useState('');
+  const { strategies, saveStrategy, deleteStrategy, atLimit } = useSavedStrategies();
 
   const strikeGap = useMemo(() => {
     const inst = legs[0]?.instrument ?? DEFAULT_INSTRUMENT;
@@ -179,8 +182,11 @@ export function StrategyBuilder({
         ) : (
           <div className="flex flex-col gap-2 mb-2">
             {legs.map((leg) => (
-              <LegRow key={leg.id} leg={leg} instruments={MCX_INSTRUMENTS}
-                isDark={isDark} onChange={updateLeg} onDelete={deleteLeg} />
+              <LegRow
+                key={leg.id} leg={leg} instruments={MCX_INSTRUMENTS}
+                isDark={isDark} futuresPrice={underlyingPrice} riskFreeRate={riskFreeRate}
+                onChange={updateLeg} onDelete={deleteLeg}
+              />
             ))}
           </div>
         )}
@@ -193,6 +199,22 @@ export function StrategyBuilder({
           <Plus className="w-3.5 h-3.5" />
           Add Leg
         </button>
+      </div>
+
+      {/* ── Save / Load ── */}
+      <div className="px-4 pb-4 border-t pt-4" style={{ borderTopColor: 'var(--th-divider)' }}>
+        <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--th-muted)' }}>
+          Save / Load Strategy
+        </p>
+        <SaveLoadPanel
+          strategies={strategies}
+          atLimit={atLimit}
+          suggestedName={selectedStrategy}
+          isDark={isDark}
+          onSave={(name) => saveStrategy(name, underlyingPrice, legs)}
+          onLoad={(s) => { onUnderlyingChange(s.futuresPrice); onLegsChange(s.legs); }}
+          onDelete={deleteStrategy}
+        />
       </div>
 
     </div>

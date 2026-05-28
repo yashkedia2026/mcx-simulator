@@ -4,6 +4,8 @@ import { StrategyBuilder } from '@/components/strategy/StrategyBuilder';
 import { PayoffChart } from '@/components/chart/PayoffChart';
 import { SummaryPanel } from '@/components/analysis/SummaryPanel';
 import { GreeksTable } from '@/components/analysis/GreeksTable';
+import { PnLTable } from '@/components/analysis/PnLTable';
+import { MarginPanel } from '@/components/analysis/MarginPanel';
 import { generatePayoffData, calculateMetrics } from '@/lib/payoff';
 import { calculatePositionGreeks } from '@/lib/greeks';
 import { useTheme } from '@/hooks/useTheme';
@@ -83,6 +85,15 @@ export default function App() {
             />
           </div>
 
+          {/* P&L Table */}
+          <PnLTable
+            underlyingPrice={underlyingPrice}
+            riskFreeRate={riskFreeRate}
+            legs={legs}
+            breakevenPoints={metrics.breakevenPoints}
+            isDark={isDark}
+          />
+
           {/* Strategy Summary */}
           <section className="flex flex-col gap-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--th-muted)' }}>
@@ -92,7 +103,7 @@ export default function App() {
           </section>
 
           {/* Position Greeks */}
-          <section className="flex flex-col gap-2.5 pb-4">
+          <section className="flex flex-col gap-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--th-muted)' }}>
               Position Greeks
             </p>
@@ -102,6 +113,11 @@ export default function App() {
             >
               <GreeksTable greeks={greeks} isDark={isDark} />
             </div>
+          </section>
+
+          {/* Margin Calculator */}
+          <section className="pb-4">
+            <MarginPanel legs={legs} futuresPrice={underlyingPrice} isDark={isDark} />
           </section>
 
         </div>

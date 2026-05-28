@@ -38,6 +38,18 @@ export function generatePayoffData(inputs: StrategyInputs): PayoffPoint[] {
   return points;
 }
 
+/** Calculate expiry + current P&L for a single price point — for the P&L table. */
+export function calculatePnLAtPrice(
+  price: number,
+  legs: OptionLeg[],
+  riskFreeRate: number
+): { expiryPnL: number; currentPnL: number } {
+  return {
+    expiryPnL:  legs.reduce((s, l) => s + legPnL(l, price, true,  riskFreeRate), 0),
+    currentPnL: legs.reduce((s, l) => s + legPnL(l, price, false, riskFreeRate), 0),
+  };
+}
+
 export function calculateMetrics(points: PayoffPoint[], legs: OptionLeg[]): StrategyMetrics {
   if (points.length === 0) {
     return { maxProfit: 0, maxLoss: 0, breakevenPoints: [], netPremium: 0, probabilityOfProfit: 0 };

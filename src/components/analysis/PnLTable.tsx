@@ -105,7 +105,8 @@ export function PnLTable({ underlyingPrice, riskFreeRate, legs, breakevenPoints,
         className="rounded-xl overflow-hidden"
         style={{ border: '1px solid var(--th-border)', background: 'var(--th-card)' }}
       >
-        <table className="w-full text-xs">
+        <div className="overflow-x-auto">
+        <table className="w-full text-xs min-w-[360px]">
           <thead>
             <tr style={headerStyle}>
               <th className="px-3 py-2 text-left">Price</th>
@@ -160,6 +161,7 @@ export function PnLTable({ underlyingPrice, riskFreeRate, legs, breakevenPoints,
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

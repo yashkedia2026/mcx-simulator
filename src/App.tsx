@@ -34,7 +34,7 @@ export default function App() {
 
   return (
     <div
-      className="flex flex-col h-screen overflow-hidden transition-colors duration-300"
+      className="flex flex-col min-h-screen lg:h-screen lg:overflow-hidden transition-colors duration-300"
       style={{ background: 'var(--th-bg)', color: 'var(--th-text)' }}
     >
       {/* 3px gradient accent bar */}
@@ -45,12 +45,12 @@ export default function App() {
 
       <Header isDark={isDark} onToggleTheme={toggleTheme} />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col lg:flex-row lg:flex-1 lg:overflow-hidden">
 
-        {/* ── Left: scrollable strategy builder ── */}
+        {/* ── Left: full-width on mobile, 420px fixed on desktop ── */}
         <div
-          className="w-[420px] shrink-0 overflow-y-auto transition-colors duration-300"
-          style={{ borderRight: '1px solid var(--th-border)' }}
+          className="w-full lg:w-[420px] lg:shrink-0 lg:overflow-y-auto transition-colors duration-300 border-b lg:border-b-0 lg:border-r"
+          style={{ borderColor: 'var(--th-border)' }}
         >
           <StrategyBuilder
             legs={legs}
@@ -64,13 +64,12 @@ export default function App() {
         </div>
 
         {/* ── Right: chart → summary → greeks ── */}
-        <div className="flex-1 flex flex-col overflow-y-auto p-4 gap-4">
+        <div className="flex-1 flex flex-col p-3 lg:p-4 gap-4 lg:overflow-y-auto">
 
           {/* Chart */}
           <div
-            className="shrink-0 rounded-xl overflow-hidden transition-colors duration-300"
+            className="shrink-0 rounded-xl overflow-hidden transition-colors duration-300 h-[260px] sm:h-[320px] lg:h-[380px]"
             style={{
-              height: 380,
               border: '1px solid var(--th-border)',
               background: isDark ? '#12122a' : '#ffffff',
             }}

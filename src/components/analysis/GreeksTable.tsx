@@ -40,7 +40,7 @@ function Row({ symbol, name, symbolColor, value, valueColor, description }: RowP
       <td className={`px-4 py-2.5 text-right font-mono text-sm font-bold tabular-nums ${valueColor}`}>
         {value}
       </td>
-      <td className="px-4 py-2.5 text-[11px] transition-colors" style={{ color: 'var(--th-muted)' }}>
+      <td className="px-4 py-2.5 text-[11px] transition-colors hidden sm:table-cell" style={{ color: 'var(--th-muted)' }}>
         {description}
       </td>
     </tr>
@@ -55,7 +55,7 @@ export function GreeksTable({ greeks, isDark: _isDark }: Props) {
   const vegaPositive  = greeks.vega >= 0;
 
   return (
-    <table className="w-full text-sm">
+    <table className="w-full text-sm min-w-[280px]">
       <thead>
         <tr style={{ borderBottom: '1px solid var(--th-border)', background: 'var(--th-input)' }}>
           <th className="px-4 py-2.5 text-left">
@@ -71,7 +71,7 @@ export function GreeksTable({ greeks, isDark: _isDark }: Props) {
           <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--th-muted)' }}>
             Value
           </th>
-          <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--th-muted)' }}>
+          <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-widest hidden sm:table-cell" style={{ color: 'var(--th-muted)' }}>
             Interpretation
           </th>
         </tr>

@@ -82,8 +82,6 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
   const gridCol  = isDark ? 'rgba(255,255,255,0.06)' : '#e8e8e8';
   const axisCol  = isDark ? '#4b5563' : '#555555';
   const zeroLine = isDark ? 'rgba(255,255,255,0.7)' : '#000000';
-  const labelBg  = isDark ? '#1e2640' : '#f5f5f5';
-  const labelFg  = isDark ? '#cbd5e1' : '#333333';
 
   const options: ApexOptions = {
     chart: {
@@ -207,7 +205,6 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
               fontWeight: '600',
               fontFamily: 'Inter, sans-serif',
               padding: { top: 0, right: 0, bottom: 0, left: 0 },
-              border: 'none',
             },
           },
         },
@@ -258,6 +255,19 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
           },
         })),
       ],
+
+      // Breakeven dot markers at y=0
+      points: breakevenPoints.map(be => ({
+        x: be,
+        y: 0,
+        marker: {
+          size: 5,
+          fillColor: '#FF6B35',
+          strokeColor: isDark ? '#12122a' : '#ffffff',
+          strokeWidth: 2,
+          shape: 'circle' as const,
+        },
+      })),
     },
 
     legend: {
@@ -276,31 +286,18 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
     tooltip: {
       theme: isDark ? 'dark' : 'light',
       style: { fontSize: '12px', fontFamily: 'Inter, sans-serif' },
-      x: { formatter: (v) => `${instrument.toUpperCase()} @ ₹${fmtPrice(v)}` },
+      x: { formatter: (v: number) => `${instrument.toUpperCase()} @ ₹${fmtPrice(v)}` },
       y: { formatter: (v) => fmtINR(v) },
       shared: true,
       intersect: false,
     },
-
-    // Breakeven point markers
-    points: breakevenPoints.map(be => ({
-      x: be,
-      y: 0,
-      marker: {
-        size: 5,
-        fillColor: '#FF6B35',
-        strokeColor: isDark ? '#12122a' : '#ffffff',
-        strokeWidth: 2,
-        shape: 'circle',
-      },
-    })),
   };
 
   return (
     <ReactApexChart
       key={isDark ? 'dark' : 'light'}
       options={options}
-      series={options.series as ApexAxisChartSeries}
+      series={options.series as ApexCharts.ApexOptions['series']}
       type="line"
       height="100%"
     />

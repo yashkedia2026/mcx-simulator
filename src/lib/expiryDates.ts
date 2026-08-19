@@ -19,7 +19,7 @@ function get25thOrPrev(year: number, month: number): Date {
 }
 
 function monthExpiry(symbol: string, year: number, month: number): Date {
-  if (symbol === 'NATURALGAS') return get25thOrPrev(year, month);
+  if (symbol === 'NATURALGAS' || symbol === 'NATGASMINI') return get25thOrPrev(year, month);
   if (['COPPER', 'ZINC', 'ALUMINIUM'].includes(symbol)) return getLastBusinessDay(year, month);
   return getLastMonday(year, month); // GOLD, SILVER, CRUDEOIL, etc.
 }

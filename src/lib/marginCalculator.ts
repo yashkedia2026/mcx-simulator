@@ -10,6 +10,7 @@ const RATES: Record<string, MarginRates> = {
   CRUDEOIL:   { span: 0.07, exposure: 0.05 },
   CRUDEOILM:  { span: 0.07, exposure: 0.05 },
   NATURALGAS: { span: 0.10, exposure: 0.06 },
+  NATGASMINI: { span: 0.10, exposure: 0.06 },
   COPPER:     { span: 0.05, exposure: 0.04 },
   ZINC:       { span: 0.05, exposure: 0.04 },
   ALUMINIUM:  { span: 0.05, exposure: 0.04 },

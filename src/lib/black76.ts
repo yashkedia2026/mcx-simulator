@@ -67,7 +67,7 @@ export function black76Greeks(
 
   const theta =
     direction *
-    (-(F * nd1 * sigma * discount) / (2 * Math.sqrt(T)) -
+    (-(F * nd1 * sigma * discount) / (2 * Math.sqrt(T)) +
       r * discount * (optionType === 'CE'
         ? F * N(d1) - K * N(d2)
         : K * N(-d2) - F * N(-d1))) /

@@ -6,6 +6,8 @@ import { MCX_INSTRUMENTS, DEFAULT_INSTRUMENT, getStrikeGap, roundToStrike } from
 import { PREBUILT_STRATEGIES } from '@/lib/strategies';
 import { black76Price } from '@/lib/black76';
 import { useSavedStrategies } from '@/hooks/useSavedStrategies';
+import { useToast } from '@/hooks/useToast';
+import { ToastStack } from '@/components/ui/ToastStack';
 import type { OptionLeg } from '@/types';
 
 let legCounter = 0;
@@ -33,6 +35,7 @@ interface Props {
   underlyingPrice: number;
   riskFreeRate: number;
   isDark: boolean;
+  userId: string | null;
   onLegsChange: (legs: OptionLeg[]) => void;
   onUnderlyingChange: (price: number) => void;
   onRateChange: (rate: number) => void;
@@ -43,12 +46,71 @@ export function StrategyBuilder({
   underlyingPrice,
   riskFreeRate,
   isDark,
+  userId,
   onLegsChange,
   onUnderlyingChange,
   onRateChange,
 }: Props) {
   const [selectedStrategy, setSelectedStrategy] = useState('');
-  const { strategies, saveStrategy, deleteStrategy, atLimit } = useSavedStrategies();
+  const [loadedStrategyId, setLoadedStrategyId] = useState<string | null>(null);
+  const [loadedName, setLoadedName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const { strategies, saveStrategy, updateStrategy, deleteStrategy, renameStrategy } = useSavedStrategies(userId);
+  const { toasts, showToast, dismiss } = useToast();
+
+  function clearLoadedStrategy() {
+    setLoadedStrategyId(null);
+    setLoadedName('');
+  }
+
+  function handleClearAll() {
+    onLegsChange([]);
+    setSelectedStrategy('');
+    clearLoadedStrategy();
+  }
+
+  async function handleSaveAsNew(name: string) {
+    setSaving(true);
+    const ok = await saveStrategy(name, underlyingPrice, legs);
+    setSaving(false);
+    if (ok) {
+      clearLoadedStrategy();
+      showToast('success', `Saved "${name || 'Untitled'}"`);
+    } else {
+      showToast('error', 'Failed to save strategy — try again.');
+    }
+  }
+
+  async function handleUpdate(id: string, name: string) {
+    setSaving(true);
+    const ok = await updateStrategy(id, name, underlyingPrice, legs);
+    setSaving(false);
+    showToast(ok ? 'success' : 'error', ok ? `Updated "${name || 'Untitled'}"` : 'Failed to update strategy — try again.');
+  }
+
+  async function handleDelete(id: string, name: string) {
+    const ok = await deleteStrategy(id);
+    if (ok) {
+      if (id === loadedStrategyId) clearLoadedStrategy();
+      showToast('success', `Deleted "${name}"`);
+    } else {
+      showToast('error', 'Failed to delete strategy — try again.');
+    }
+  }
+
+  async function handleRename(id: string, name: string) {
+    const ok = await renameStrategy(id, name);
+    showToast(ok ? 'success' : 'error', ok ? `Renamed to "${name}"` : 'Failed to rename strategy — try again.');
+  }
+
+  function handleLoad(s: { id: string; name: string; futuresPrice: number; legs: OptionLeg[] }) {
+    onUnderlyingChange(s.futuresPrice);
+    onLegsChange(s.legs);
+    setSelectedStrategy('');
+    setLoadedStrategyId(s.id);
+    setLoadedName(s.name);
+    showToast('success', `Loaded "${s.name}"`);
+  }
 
   const strikeGap = useMemo(() => {
     const inst = legs[0]?.instrument ?? DEFAULT_INSTRUMENT;
@@ -72,6 +134,7 @@ export function StrategyBuilder({
     const template = PREBUILT_STRATEGIES.find((s) => s.name === name);
     if (!template) return;
 
+    clearLoadedStrategy();
     const inst = legs[0]?.instrument ?? DEFAULT_INSTRUMENT;
     const atmStrike = roundToStrike(underlyingPrice, strikeGap);
 
@@ -156,7 +219,7 @@ export function StrategyBuilder({
           {selectedStrategy && (
             <button
               title="Clear strategy"
-              onClick={() => { setSelectedStrategy(''); onLegsChange([]); }}
+              onClick={() => { setSelectedStrategy(''); onLegsChange([]); clearLoadedStrategy(); }}
               className="shrink-0 p-1.5 rounded transition-colors hover:bg-red-500/10 hover:text-red-400"
               style={{ color: 'var(--th-muted)' }}
             >
@@ -168,9 +231,20 @@ export function StrategyBuilder({
 
       {/* ── Legs ── */}
       <div className="px-4 pt-4 pb-4">
-        <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={labelStyle}>
-          Legs{legs.length > 0 && <span className="normal-case font-normal ml-1">({legs.length})</span>}
-        </p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest" style={labelStyle}>
+            Legs{legs.length > 0 && <span className="normal-case font-normal ml-1">({legs.length})</span>}
+          </p>
+          {(legs.length > 0 || loadedStrategyId) && (
+            <button
+              onClick={handleClearAll}
+              className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded transition-colors hover:opacity-80"
+              style={{ background: 'rgba(41,121,255,0.15)', color: '#2979ff' }}
+            >
+              New Strategy
+            </button>
+          )}
+        </div>
 
         {legs.length === 0 ? (
           <div
@@ -208,15 +282,20 @@ export function StrategyBuilder({
         </p>
         <SaveLoadPanel
           strategies={strategies}
-          atLimit={atLimit}
           suggestedName={selectedStrategy}
           isDark={isDark}
-          onSave={(name) => saveStrategy(name, underlyingPrice, legs)}
-          onLoad={(s) => { onUnderlyingChange(s.futuresPrice); onLegsChange(s.legs); }}
-          onDelete={deleteStrategy}
+          saving={saving}
+          loadedStrategyId={loadedStrategyId}
+          loadedName={loadedName}
+          onSave={handleSaveAsNew}
+          onUpdate={handleUpdate}
+          onLoad={handleLoad}
+          onDelete={handleDelete}
+          onRename={handleRename}
         />
       </div>
 
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

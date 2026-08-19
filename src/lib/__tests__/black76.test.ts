@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { black76Price } from '../black76';
+import { black76Price, black76Greeks } from '../black76';
 
 // ─────────────────────────────────────────────
 // SHARED TEST INPUTS
@@ -203,6 +203,41 @@ describe('Black-76 — Volatility Sensitivity', () => {
     const lowIV  = black76Price(F, 80000, T_30, r, 0.10, 'CE');
     const highIV = black76Price(F, 80000, T_30, r, 0.80, 'CE');
     expect(highIV).toBeGreaterThan(lowIV * 3); // High IV makes a big difference on OTM
+  });
+
+});
+
+// ─────────────────────────────────────────────
+// 6. GREEKS — THETA SIGN REGRESSION GUARD
+// theta = -[F·N'(d1)·σ·e^(-rT)] / (2√T) + r·V, where V is the option's own
+// discounted price. The `+ r·V` term must be added, not subtracted — a flipped
+// sign only shifts short-dated ATM theta by ~2% (invisible to loose direction
+// checks) but flips the sign entirely for ITM options with real time value.
+// ─────────────────────────────────────────────
+describe('Black-76 — Greeks: Theta', () => {
+
+  it('ATM Call theta (30 DTE, r=6.5%) matches the analytical Black-76 value', () => {
+    const { theta } = black76Greeks(F, K_ATM, T_30, r, sigma, 'CE', 1);
+    // Correct value ≈ -24.97/day. A sign-flipped r-term would give ≈ -25.51/day.
+    expect(theta).toBeGreaterThan(-25.3);
+    expect(theta).toBeLessThan(-24.6);
+  });
+
+  it('Deep ITM long-dated Call theta is POSITIVE — the r·V term outweighs time decay', () => {
+    // F=74000, K=60000, 90 DTE, r=6.5%: correct theta ≈ +1.63/day. A sign-flipped
+    // r-term would instead make this ≈ -3.28/day.
+    const { theta } = black76Greeks(74000, 60000, 90 / 365, r, sigma, 'CE', 1);
+    expect(theta).toBeGreaterThan(0);
+  });
+
+  it('Deep ITM long-dated Put theta is also POSITIVE, for the same reason', () => {
+    const { theta } = black76Greeks(60000, 74000, 90 / 365, r, sigma, 'PE', 1);
+    expect(theta).toBeGreaterThan(0);
+  });
+
+  it('SELL side of a deep ITM Call has the opposite (negative) theta', () => {
+    const { theta } = black76Greeks(74000, 60000, 90 / 365, r, sigma, 'CE', -1);
+    expect(theta).toBeLessThan(0);
   });
 
 });

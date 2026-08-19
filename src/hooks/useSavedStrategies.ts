@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import type { OptionLeg } from '@/types';
 
 export interface SavedStrategy {
@@ -7,47 +8,108 @@ export interface SavedStrategy {
   instrument: string;
   futuresPrice: number;
   legs: OptionLeg[];
-  savedAt: string; // ISO date
+  savedAt: string;
 }
 
-const STORAGE_KEY = 'mcx-simulator-strategies';
-const MAX_STRATEGIES = 20;
-
-export function useSavedStrategies() {
+export function useSavedStrategies(userId: string | null) {
   const [strategies, setStrategies] = useState<SavedStrategy[]>([]);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState<string | null>(null);
 
+  // Fetch all strategies for this user
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setStrategies(JSON.parse(raw));
-    } catch { /* ignore corrupt data */ }
-  }, []);
+    if (!userId) { setStrategies([]); return; }
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(strategies));
-  }, [strategies]);
+    setLoading(true);
+    supabase
+      .from('strategies')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        setLoading(false);
+        if (error) { setError(error.message); return; }
+        setStrategies((data ?? []).map(row => ({
+          id:           row.id,
+          name:         row.name,
+          instrument:   row.instrument ?? '',
+          futuresPrice: row.futures_price ?? 0,
+          legs:         row.legs ?? [],
+          savedAt:      row.created_at,
+        })));
+      });
+  }, [userId]);
 
-  function saveStrategy(name: string, futuresPrice: number, legs: OptionLeg[]): boolean {
-    if (strategies.length >= MAX_STRATEGIES) return false;
-    const entry: SavedStrategy = {
-      id: crypto.randomUUID(),
-      name: name.trim() || `Strategy ${strategies.length + 1}`,
-      instrument: legs[0]?.instrument.symbol ?? 'GOLD',
-      futuresPrice,
-      legs,
-      savedAt: new Date().toISOString(),
+  async function saveStrategy(name: string, futuresPrice: number, legs: OptionLeg[]): Promise<boolean> {
+    if (!userId) return false;
+
+    const { data, error } = await supabase
+      .from('strategies')
+      .insert({
+        user_id:       userId,
+        name:          name.trim() || `Strategy ${strategies.length + 1}`,
+        instrument:    legs[0]?.instrument.symbol ?? 'GOLD',
+        futures_price: futuresPrice,
+        legs,
+      })
+      .select()
+      .single();
+
+    if (error) { setError(error.message); return false; }
+
+    const saved: SavedStrategy = {
+      id:           data.id,
+      name:         data.name,
+      instrument:   data.instrument ?? '',
+      futuresPrice: data.futures_price ?? 0,
+      legs:         data.legs ?? [],
+      savedAt:      data.created_at,
     };
-    setStrategies(prev => [entry, ...prev]);
+    setStrategies(prev => [saved, ...prev]);
     return true;
   }
 
-  function deleteStrategy(id: string) {
+  async function updateStrategy(id: string, name: string, futuresPrice: number, legs: OptionLeg[]): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('strategies')
+      .update({
+        name:          name.trim() || 'Untitled',
+        instrument:    legs[0]?.instrument.symbol ?? 'GOLD',
+        futures_price: futuresPrice,
+        legs,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) { setError(error.message); return false; }
+
+    const updated: SavedStrategy = {
+      id:           data.id,
+      name:         data.name,
+      instrument:   data.instrument ?? '',
+      futuresPrice: data.futures_price ?? 0,
+      legs:         data.legs ?? [],
+      savedAt:      data.created_at,
+    };
+    setStrategies(prev => prev.map(s => s.id === id ? updated : s));
+    return true;
+  }
+
+  async function deleteStrategy(id: string): Promise<boolean> {
+    const { error } = await supabase.from('strategies').delete().eq('id', id);
+    if (error) { setError(error.message); return false; }
     setStrategies(prev => prev.filter(s => s.id !== id));
+    return true;
   }
 
-  function renameStrategy(id: string, name: string) {
-    setStrategies(prev => prev.map(s => s.id === id ? { ...s, name } : s));
+  async function renameStrategy(id: string, name: string): Promise<boolean> {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+    const { error } = await supabase.from('strategies').update({ name: trimmed }).eq('id', id);
+    if (error) { setError(error.message); return false; }
+    setStrategies(prev => prev.map(s => s.id === id ? { ...s, name: trimmed } : s));
+    return true;
   }
 
-  return { strategies, saveStrategy, deleteStrategy, renameStrategy, atLimit: strategies.length >= MAX_STRATEGIES };
+  return { strategies, loading, error, saveStrategy, updateStrategy, deleteStrategy, renameStrategy };
 }

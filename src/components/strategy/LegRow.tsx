@@ -20,8 +20,18 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
   const isCE  = leg.optionType  === 'CE';
 
   const [isIvAuto, setIsIvAuto] = useState(false);
-  const [ivInvalid, setIvInvalid] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Always-live: is the current premium below this leg's discounted intrinsic
+  // value? Recomputed from every relevant field (not just Premium itself) so
+  // that editing the strike after the premium was set still surfaces the warning
+  // instead of leaving a stale, silently-invalid premium in place.
+  const ivInvalid = useMemo(() => {
+    if (leg.premium <= 0) return false;
+    const T = leg.daysToExpiry / 365;
+    const r = riskFreeRate / 100;
+    return calculateIV(leg.premium, futuresPrice, leg.strikePrice, T, r, leg.optionType) === null;
+  }, [leg.premium, leg.strikePrice, leg.optionType, leg.daysToExpiry, futuresPrice, riskFreeRate]);
 
   // Upcoming expiry dates for this instrument
   const expiries = useMemo(
@@ -50,7 +60,6 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
   function handlePremiumChange(premium: number) {
     update({ premium });
     setIsIvAuto(false);
-    setIvInvalid(false);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       const T = leg.daysToExpiry / 365;
@@ -59,9 +68,6 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
       if (iv !== null) {
         onChange({ ...leg, premium, iv: parseFloat((iv * 100).toFixed(1)) });
         setIsIvAuto(true);
-        setIvInvalid(false);
-      } else if (premium > 0) {
-        setIvInvalid(true);
       }
     }, 300);
   }

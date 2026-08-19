@@ -1,11 +1,13 @@
-import { TrendingUp, Sun, Moon } from 'lucide-react';
+import { TrendingUp, Sun, Moon, LogOut } from 'lucide-react';
 
 interface Props {
   isDark: boolean;
   onToggleTheme: () => void;
+  userEmail?: string;
+  onSignOut?: () => void;
 }
 
-export function Header({ isDark, onToggleTheme }: Props) {
+export function Header({ isDark, onToggleTheme, userEmail, onSignOut }: Props) {
   return (
     <header
       className="h-14 flex items-center px-5 shrink-0 border-b transition-colors duration-300"
@@ -30,6 +32,29 @@ export function Header({ isDark, onToggleTheme }: Props) {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        {/* User email */}
+        {userEmail && (
+          <span
+            className="text-xs hidden sm:inline px-2 py-1 rounded-md truncate max-w-[160px]"
+            style={{ color: 'var(--th-muted)', background: 'var(--th-input)' }}
+            title={userEmail}
+          >
+            {userEmail.length > 22 ? userEmail.slice(0, 20) + '…' : userEmail}
+          </span>
+        )}
+
+        {/* Sign out */}
+        {onSignOut && (
+          <button
+            onClick={onSignOut}
+            title="Sign out"
+            className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors duration-200 hover:bg-red-500/10 hover:text-red-400"
+            style={{ color: 'var(--th-muted)' }}
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        )}
+
         {/* Dark / Light toggle */}
         <button
           onClick={onToggleTheme}

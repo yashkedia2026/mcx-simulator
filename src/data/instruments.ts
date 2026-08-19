@@ -10,6 +10,7 @@ export const MCX_INSTRUMENTS: Instrument[] = [
   { symbol: 'CRUDEOIL',   name: 'Crude Oil',       lotSize: 100,  tickSize: 1,    unit: 'barrels', priceUnit: '₹/bbl'   },
   { symbol: 'CRUDEOILM',  name: 'Crude Oil Mini',  lotSize: 10,   tickSize: 1,    unit: 'barrels', priceUnit: '₹/bbl'   },
   { symbol: 'NATURALGAS', name: 'Natural Gas',     lotSize: 1250, tickSize: 0.10, unit: 'mmBtu',   priceUnit: '₹/mmBtu' },
+  { symbol: 'NATGASMINI', name: 'Natural Gas Mini', lotSize: 250,  tickSize: 0.10, unit: 'mmBtu',   priceUnit: '₹/mmBtu' },
   { symbol: 'COPPER',     name: 'Copper',          lotSize: 2500, tickSize: 0.05, unit: 'kg',      priceUnit: '₹/kg'    },
   { symbol: 'ZINC',       name: 'Zinc',            lotSize: 5000, tickSize: 0.05, unit: 'kg',      priceUnit: '₹/kg'    },
   { symbol: 'ALUMINIUM',  name: 'Aluminium',       lotSize: 5000, tickSize: 0.05, unit: 'kg',      priceUnit: '₹/kg'    },
@@ -32,7 +33,7 @@ export function getStrikeGap(instrument: Instrument, price: number): number {
   if (sym === 'CRUDEOIL' || sym === 'CRUDEOILM') {
     return 100;
   }
-  if (sym === 'NATURALGAS') {
+  if (sym === 'NATURALGAS' || sym === 'NATGASMINI') {
     return 10;
   }
   if (sym === 'COPPER') {

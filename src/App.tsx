@@ -26,7 +26,10 @@ export default function App() {
     [underlyingPrice, riskFreeRate, legs]
   );
 
-  const metrics = useMemo(() => calculateMetrics(payoffData, legs), [payoffData, legs]);
+  const metrics = useMemo(
+    () => calculateMetrics(payoffData, legs, underlyingPrice),
+    [payoffData, legs, underlyingPrice]
+  );
 
   const greeks = useMemo(
     () => calculatePositionGreeks(legs, underlyingPrice, riskFreeRate),

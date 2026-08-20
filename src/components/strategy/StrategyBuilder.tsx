@@ -5,30 +5,12 @@ import { SaveLoadPanel } from './SaveLoadPanel';
 import { MCX_INSTRUMENTS, DEFAULT_INSTRUMENT, getStrikeGap, roundToStrike } from '@/data/instruments';
 import { PREBUILT_STRATEGIES } from '@/lib/strategies';
 import { black76Price } from '@/lib/black76';
+import { newId, cloneLegForAdd } from '@/lib/legs';
 import { useSavedStrategies } from '@/hooks/useSavedStrategies';
 import { useToast } from '@/hooks/useToast';
 import { ToastStack } from '@/components/ui/ToastStack';
+import { NumberField } from '@/components/ui/NumberField';
 import type { OptionLeg } from '@/types';
-
-let legCounter = 0;
-function newId() {
-  return `leg-${++legCounter}`;
-}
-
-function makeDefaultLeg(): OptionLeg {
-  const atm = roundToStrike(74000, getStrikeGap(DEFAULT_INSTRUMENT, 74000));
-  return {
-    id: newId(),
-    instrument: DEFAULT_INSTRUMENT,
-    positionType: 'BUY',
-    optionType: 'CE',
-    strikePrice: atm,
-    premium: 500,
-    iv: 18,
-    daysToExpiry: 30,
-    lots: 1,
-  };
-}
 
 interface Props {
   legs: OptionLeg[];
@@ -118,7 +100,7 @@ export function StrategyBuilder({
   }, [legs, underlyingPrice]);
 
   function addLeg() {
-    onLegsChange([...legs, makeDefaultLeg()]);
+    onLegsChange([...legs, cloneLegForAdd(legs)]);
   }
 
   function updateLeg(updated: OptionLeg) {
@@ -183,15 +165,15 @@ export function StrategyBuilder({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-[11px] block mb-1.5" style={labelStyle}>Futures Price (₹)</label>
-            <input type="number" className={inputCls} style={inputStyle}
+            <NumberField className={inputCls} style={inputStyle}
               value={underlyingPrice} step={1}
-              onChange={(e) => onUnderlyingChange(parseFloat(e.target.value) || 0)} />
+              onChange={onUnderlyingChange} />
           </div>
           <div>
             <label className="text-[11px] block mb-1.5" style={labelStyle}>Risk-Free Rate (%)</label>
-            <input type="number" className={inputCls} style={inputStyle}
+            <NumberField className={inputCls} style={inputStyle}
               value={riskFreeRate} step={0.25} min={0} max={20}
-              onChange={(e) => onRateChange(parseFloat(e.target.value) || 0)} />
+              onChange={onRateChange} />
           </div>
         </div>
       </div>

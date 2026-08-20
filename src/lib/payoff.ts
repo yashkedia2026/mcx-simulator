@@ -1,4 +1,5 @@
 import { black76Price } from './black76';
+import { effectiveSigmaT, probBelow } from './probability';
 import type { OptionLeg, StrategyInputs, PayoffPoint, StrategyMetrics } from '@/types';
 
 function legPnL(leg: OptionLeg, price: number, atExpiry: boolean, riskFreeRate: number): number {
@@ -50,7 +51,18 @@ export function calculatePnLAtPrice(
   };
 }
 
-export function calculateMetrics(points: PayoffPoint[], legs: OptionLeg[]): StrategyMetrics {
+/** probBelow(K), with -Infinity/Infinity bounds handled as 0/1 (rather than a NaN-producing log). */
+function probBelowBounded(K: number, F: number, sigma: number, T: number): number {
+  if (K === -Infinity) return 0;
+  if (K === Infinity) return 1;
+  return probBelow(K, F, sigma, T);
+}
+
+export function calculateMetrics(
+  points: PayoffPoint[],
+  legs: OptionLeg[],
+  underlyingPrice: number
+): StrategyMetrics {
   if (points.length === 0) {
     return { maxProfit: 0, maxLoss: 0, breakevenPoints: [], netPremium: 0, probabilityOfProfit: 0 };
   }
@@ -89,8 +101,28 @@ export function calculateMetrics(points: PayoffPoint[], legs: OptionLeg[]): Stra
     return sum + sign * leg.premium * leg.lots * leg.instrument.lotSize;
   }, 0);
 
-  const profitPoints = expiryValues.filter((v) => v > 0).length;
-  const probabilityOfProfit = (profitPoints / expiryValues.length) * 100;
+  // Probability of profit: integrate the Black-76 lognormal terminal-price distribution
+  // over the price intervals (split at the breakevens) that are profitable at expiry.
+  // Profitability strictly alternates at each breakeven crossing, so the leftmost interval's
+  // sign matches the leftmost grid point's sign, then flips after each subsequent breakeven.
+  const { sigma, T } = effectiveSigmaT(legs);
+  const sortedBreakevens = [...breakevenPoints].sort((a, b) => a - b);
+  const boundaries = [-Infinity, ...sortedBreakevens, Infinity];
+  let isProfitable = expiryValues[0] > 0;
+
+  let probabilityMass = 0;
+  for (let i = 0; i < boundaries.length - 1; i++) {
+    if (isProfitable) {
+      const lo = boundaries[i];
+      const hi = boundaries[i + 1];
+      probabilityMass +=
+        probBelowBounded(hi, underlyingPrice, sigma, T) -
+        probBelowBounded(lo, underlyingPrice, sigma, T);
+    }
+    isProfitable = !isProfitable;
+  }
+
+  const probabilityOfProfit = probabilityMass * 100;
 
   return { maxProfit, maxLoss, breakevenPoints, netPremium, probabilityOfProfit };
 }

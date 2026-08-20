@@ -1,6 +1,7 @@
 import ReactApexChart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
 import type { PayoffPoint, OptionLeg } from '@/types';
+import { effectiveSigmaT } from '@/lib/probability';
 
 interface Props {
   data: PayoffPoint[];
@@ -61,19 +62,20 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
   const profitColor = isDark ? '#00C864' : '#00B860';
   const lossColor   = isDark ? '#FF5032' : '#FF4020';
 
-  // ── Standard deviation ──
-  const avgIV  = legs.length > 0 ? legs.reduce((s, l) => s + l.iv,  0) / legs.length / 100 : 0.18;
-  const avgDTE = legs.length > 0 ? legs.reduce((s, l) => s + l.daysToExpiry, 0) / legs.length : 30;
-  const sigma  = underlyingPrice * avgIV * Math.sqrt(Math.max(avgDTE, 1) / 365);
+  // ── Standard deviation (lognormal quantiles, consistent with Black-76 pricing) ──
+  const { sigma, T } = effectiveSigmaT(legs);
 
   interface SL { x: number; label: string; isCMP: boolean }
-  const sigmaLevels: SL[] = sigma > 0
+  const lognormalQuantile = (n: number) =>
+    underlyingPrice * Math.exp(n * sigma * Math.sqrt(T) - 0.5 * sigma * sigma * T);
+
+  const sigmaLevels: SL[] = sigma > 0 && T > 0
     ? [
-        { x: underlyingPrice - 2 * sigma, label: '-2σ', isCMP: false },
-        { x: underlyingPrice - sigma,     label: '-1σ', isCMP: false },
+        { x: lognormalQuantile(-2),       label: '-2σ', isCMP: false },
+        { x: lognormalQuantile(-1),       label: '-1σ', isCMP: false },
         { x: underlyingPrice,             label: 'CMP', isCMP: true  },
-        { x: underlyingPrice + sigma,     label: '+1σ', isCMP: false },
-        { x: underlyingPrice + 2 * sigma, label: '+2σ', isCMP: false },
+        { x: lognormalQuantile(1),        label: '+1σ', isCMP: false },
+        { x: lognormalQuantile(2),        label: '+2σ', isCMP: false },
       ]
     : [{ x: underlyingPrice, label: 'CMP', isCMP: true }];
 

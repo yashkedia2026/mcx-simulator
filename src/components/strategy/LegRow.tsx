@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { Trash2 } from 'lucide-react';
 import { getUpcomingExpiries, calculateDTE, formatExpiry } from '@/lib/expiryDates';
 import { calculateIV } from '@/lib/impliedVolatility';
+import { NumberField } from '@/components/ui/NumberField';
+import { recomputeLegForInstrument } from '@/lib/legs';
 import type { OptionLeg, Instrument } from '@/types';
 
 interface Props {
@@ -137,7 +139,7 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
           value={leg.instrument.symbol}
           onChange={(e) => {
             const inst = instruments.find(i => i.symbol === e.target.value);
-            if (inst) update({ instrument: inst });
+            if (inst) onChange(recomputeLegForInstrument(leg, inst, futuresPrice, riskFreeRate));
           }}
         >
           {instruments.map(i => (
@@ -158,9 +160,9 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
       <div className="grid grid-cols-2 gap-2">
         <div>
           <span style={lbl} className="block">Strike</span>
-          <input type="number" className={numCls} style={baseInput}
+          <NumberField className={numCls} style={baseInput}
             value={leg.strikePrice} step={leg.instrument.tickSize * 10}
-            onChange={(e) => update({ strikePrice: parseFloat(e.target.value) || 0 })} />
+            onChange={(n) => update({ strikePrice: n })} />
         </div>
         <div>
           <div className="flex items-center gap-1" style={{ marginBottom: 4 }}>
@@ -169,9 +171,9 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
               <span title="Premium may be below intrinsic value" style={{ color: '#ef4444', fontSize: 10 }}>⚠</span>
             )}
           </div>
-          <input type="number" className={numCls} style={inputStyle}
+          <NumberField className={numCls} style={inputStyle}
             value={leg.premium} step={leg.instrument.tickSize}
-            onChange={(e) => handlePremiumChange(parseFloat(e.target.value) || 0)} />
+            onChange={handlePremiumChange} />
         </div>
       </div>
 
@@ -194,9 +196,9 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
               </span>
             )}
           </div>
-          <input type="number" className={numCls} style={baseInput}
-            value={leg.iv} step={0.5} min={0.1} max={200}
-            onChange={(e) => { setIsIvAuto(false); update({ iv: parseFloat(e.target.value) || 1 }); }} />
+          <NumberField className={numCls} style={baseInput}
+            value={leg.iv} step={0.5} min={0.1} max={200} fallback={1}
+            onChange={(n) => { setIsIvAuto(false); update({ iv: n }); }} />
         </div>
 
         <div>
@@ -214,18 +216,18 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
             <option value="custom">Custom ({leg.daysToExpiry}d)</option>
           </select>
           {selectedExpiry === 'custom' && (
-            <input type="number" className={`${numCls} mt-1`} style={baseInput}
-              value={leg.daysToExpiry} min={0} max={365}
+            <NumberField className={`${numCls} mt-1`} style={baseInput}
+              value={leg.daysToExpiry} min={0} max={365} integer
               placeholder="Days"
-              onChange={(e) => update({ daysToExpiry: parseInt(e.target.value) || 0 })} />
+              onChange={(n) => update({ daysToExpiry: n })} />
           )}
         </div>
 
         <div>
           <span style={lbl} className="block">Lots</span>
-          <input type="number" className={numCls} style={baseInput}
-            value={leg.lots} min={1}
-            onChange={(e) => update({ lots: parseInt(e.target.value) || 1 })} />
+          <NumberField className={numCls} style={baseInput}
+            value={leg.lots} min={1} fallback={1} integer
+            onChange={(n) => update({ lots: n })} />
         </div>
       </div>
     </div>

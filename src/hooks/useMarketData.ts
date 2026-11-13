@@ -3,16 +3,19 @@ import type { MarketContract, MarketQuote, MarketStatus } from '@/types/market';
 
 interface Options {
   active?: boolean;
+  accessToken?: string | null;
 }
 
-async function request<T>(path: string, signal?: AbortSignal, body?: unknown): Promise<T> {
-  const response = await fetch('/api/market/' + path, {
-    signal, method: body === undefined ? 'GET' : 'POST',
-    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+async function request<T>(path: string, signal?: AbortSignal, body?: unknown, accessToken?: string | null): Promise<T> {
+  const apiBase = String(import.meta.env.VITE_MARKET_DATA_API_URL ?? '/api/market').replace(/\/$/, '');
+  const headers: HeadersInit = body === undefined ? {} : { 'Content-Type': 'application/json' };
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  const response = await fetch(`${apiBase}/${path}`, {
+    signal, method: body === undefined ? 'GET' : 'POST', headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!response.headers.get('content-type')?.includes('application/json')) {
-    throw new Error('Market data server is unavailable. Start the app with npm run dev.');
+    throw new Error('Market data API is unavailable. Check the deployment environment or run npm run dev locally.');
   }
   const data = await response.json();
   if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Market data request failed.');
@@ -35,26 +38,26 @@ export function useMarketData(instrumentIds: number[], onQuotesReceived?: (quote
   useEffect(() => {
     if (options.active === false) return;
     const controller = new AbortController();
-    request<MarketStatus>('status', controller.signal).then(setStatus).catch(err => {
+    request<MarketStatus>('status', controller.signal, undefined, options.accessToken).then(setStatus).catch(err => {
       if (!controller.signal.aborted) setError(err.message);
     });
     return () => controller.abort();
-  }, [options.active]);
+  }, [options.accessToken, options.active]);
 
   const connect = useCallback(async () => {
     connectionAttempted.current = true;
     setLoading(true);
     setError('');
     try {
-      const data = await request<{ contracts: MarketContract[] }>('contracts');
+      const data = await request<{ contracts: MarketContract[] }>('contracts', undefined, undefined, options.accessToken);
       setContracts(data.contracts);
       setStatus({ configured: true, connected: true });
       setEnabled(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to connect to Eureka.');
-      request<MarketStatus>('status').then(setStatus).catch(() => {});
+      request<MarketStatus>('status', undefined, undefined, options.accessToken).then(setStatus).catch(() => {});
     } finally { setLoading(false); }
-  }, []);
+  }, [options.accessToken]);
 
   useEffect(() => {
     if (options.active !== false && status?.configured && !connectionAttempted.current) void connect();
@@ -75,7 +78,7 @@ export function useMarketData(instrumentIds: number[], onQuotesReceived?: (quote
         const batches: number[][] = [];
         for (let index = 0; index < ids.length; index += 50) batches.push(ids.slice(index, index + 50));
         const responses = await Promise.all(batches.map(batch => request<{ quotes: MarketQuote[] }>('quotes', controller.signal,
-          { instrumentIds: batch })));
+          { instrumentIds: batch }, options.accessToken)));
         if (controller.signal.aborted) return;
         const quotes = responses.flatMap(response => response.quotes);
         const received = Object.fromEntries(quotes.map(q => [q.instrumentId, q]));
@@ -99,7 +102,7 @@ export function useMarketData(instrumentIds: number[], onQuotesReceived?: (quote
     };
     void poll();
     return () => { controller.abort(); clearTimeout(timer); };
-  }, [enabled, idsKey, options.active]);
+  }, [enabled, idsKey, options.accessToken, options.active]);
 
   return { status, contracts, quotes, enabled, setEnabled, loading, error, now, connect };
 }

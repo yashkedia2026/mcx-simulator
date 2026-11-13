@@ -95,7 +95,7 @@ export function MarketDataPanel(props: Props) {
       <RefreshCw size={12} /> Retry live connection
     </button>}
     {status && !status.configured && <p className="text-xs leading-relaxed" style={{ color: 'var(--th-muted)' }}>
-      Manual simulation is available now. To use live prices, add your Eureka app key and secret to the server’s <code>.env.local</code>, then restart the app. Credentials stay out of the browser.
+      Manual simulation is available now. To use live prices, add your Eureka app key and secret to the market-data server environment. Credentials stay out of the browser.
     </p>}
     {!contracts.length && !error && <p className="text-[10px] leading-relaxed" style={{ color: 'var(--th-muted)' }}>
       Manual mode works without a website account. This sign-in only authenticates the server-side Eureka market-data connection.

@@ -58,6 +58,22 @@ Drafts autosave after about one second of inactivity. They are stored locally fi
 
 The app polls the selected future, option and strategy legs in batches of up to 50 IDs every five seconds. This is REST polling, not a tick-by-tick WebSocket stream. A quote is usable for 15 seconds after retrieval. Missing or stale quotes suppress the market total; incomplete or invalid quotes leave the last complete model snapshot in place with its timestamp. Reconnect/reload restores the contract selector; a saved contract must match the current master before live valuation resumes.
 
+### Vercel deployment
+
+The local `server/index.mjs` process is not available inside a static Vercel frontend. The repository now includes authenticated Vercel functions at `/api/market/status`, `/api/market/contracts`, and `/api/market/quotes`. Add these Vercel environment variables for the Production environment, then redeploy:
+
+```dotenv
+EUREKA_BASE_URL=https://algo.eurekasecurities.net
+EUREKA_APP_KEY=your_binary_marketdata_app_key
+EUREKA_SECRET_KEY=your_binary_marketdata_app_secret
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+`EUREKA_APP_KEY` and `EUREKA_SECRET_KEY` must be server-only Vercel variables. The browser sends the signed-in Supabase access token to the market functions; unauthenticated requests are rejected. Do not put Eureka credentials in any `VITE_*` variable. If the Vercel project uses a separate market-data host, set `VITE_MARKET_DATA_API_URL` to that host's `/api/market` base path instead.
+
 ## Data flow and assumptions
 
 ```text

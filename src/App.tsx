@@ -71,7 +71,7 @@ export default function App() {
       Date.parse(quotes[leg.marketContract!.instrumentId].receivedAt),
       Date.parse(quotes[leg.marketContract!.underlyingInstrumentId].receivedAt),
     ])));
-  }, { active: Boolean(session) });
+  }, { active: Boolean(session), accessToken: session?.access_token });
   const underlyingId = legs[0]?.marketContract?.underlyingInstrumentId;
   const analysisPrice = underlyingPrice;
   const analysisLegs = legs;

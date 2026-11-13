@@ -1,11 +1,14 @@
-import { TrendingUp, Sun, Moon } from 'lucide-react';
+import { TrendingUp, Sun, Moon, Radio, LogOut } from 'lucide-react';
 
 interface Props {
   isDark: boolean;
   onToggleTheme: () => void;
+  marketConnected: boolean;
+  userEmail?: string;
+  onSignOut?: () => void;
 }
 
-export function Header({ isDark, onToggleTheme }: Props) {
+export function Header({ isDark, onToggleTheme, marketConnected, userEmail, onSignOut }: Props) {
   return (
     <header
       className="h-14 flex items-center px-5 shrink-0 border-b transition-colors duration-300"
@@ -30,6 +33,35 @@ export function Header({ isDark, onToggleTheme }: Props) {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        {userEmail && (
+          <span
+            className="hidden max-w-[160px] truncate rounded-md px-2 py-1 text-xs sm:inline"
+            style={{ color: 'var(--th-muted)', background: 'var(--th-input)' }}
+            title={userEmail}
+          >
+            {userEmail.length > 22 ? `${userEmail.slice(0, 20)}…` : userEmail}
+          </span>
+        )}
+
+        {onSignOut && (
+          <button
+            onClick={onSignOut}
+            title="Sign out"
+            className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors duration-200 hover:bg-red-500/10 hover:text-red-400"
+            style={{ color: 'var(--th-muted)' }}
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        )}
+
+        <span
+          className="hidden sm:flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px]"
+          style={{ borderColor: 'var(--th-border2)', color: marketConnected ? '#00c853' : 'var(--th-muted)' }}
+        >
+          <Radio className="w-3.5 h-3.5" />
+          {marketConnected ? 'Live data connected' : 'Live data will connect automatically'}
+        </span>
+
         {/* Dark / Light toggle */}
         <button
           onClick={onToggleTheme}

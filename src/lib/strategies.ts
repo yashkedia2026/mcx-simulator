@@ -1,4 +1,6 @@
-import type { PrebuiltStrategyTemplate } from '@/types';
+import type { Instrument, OptionLeg, PrebuiltStrategyTemplate } from '@/types';
+import { DEFAULT_INSTRUMENT, getStrikeGap, roundToStrike } from '@/data/instruments';
+import { black76Price } from '@/lib/black76';
 
 export const PREBUILT_STRATEGIES: PrebuiltStrategyTemplate[] = [
   {
@@ -106,3 +108,29 @@ export const PREBUILT_STRATEGIES: PrebuiltStrategyTemplate[] = [
     ],
   },
 ];
+
+/** Build a manual strategy from a template so UI and quick-start actions share one model. */
+export function buildStrategyLegs(name: string, underlyingPrice: number, riskFreeRate: number,
+  instrument: Instrument = DEFAULT_INSTRUMENT): OptionLeg[] {
+  const template = PREBUILT_STRATEGIES.find(strategy => strategy.name === name);
+  if (!template) return [];
+  const strikeGap = getStrikeGap(instrument, underlyingPrice);
+  const atmStrike = roundToStrike(underlyingPrice, strikeGap);
+  const T = 30 / 365;
+  const r = riskFreeRate / 100;
+
+  return template.legs.map(leg => {
+    const strikePrice = atmStrike + leg.strikeOffset * strikeGap;
+    return {
+      id: crypto.randomUUID(),
+      instrument,
+      positionType: leg.positionType,
+      optionType: leg.optionType,
+      strikePrice,
+      premium: Math.round(black76Price(underlyingPrice, strikePrice, T, r, 0.18, leg.optionType)),
+      iv: 18,
+      daysToExpiry: 30,
+      lots: 1,
+    };
+  });
+}

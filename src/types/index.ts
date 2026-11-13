@@ -20,6 +20,15 @@ export interface OptionLeg {
   lots: number;
   iv: number;
   daysToExpiry: number;
+  marketContract?: {
+    instrumentId: number;
+    underlyingInstrumentId: number;
+    expiry: string;
+    symbol: string;
+    name: string;
+    brokerLotSize?: number;
+    priceMultiplier?: number;
+  };
 }
 
 export interface StrategyInputs {

@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import { getUpcomingExpiries, calculateDTE, formatExpiry } from '@/lib/expiryDates';
 import { calculateIV } from '@/lib/impliedVolatility';
+import { expiryTime } from '@/lib/marketData';
 import type { OptionLeg, Instrument } from '@/types';
 
 interface Props {
@@ -18,59 +18,37 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
   const update = (patch: Partial<OptionLeg>) => onChange({ ...leg, ...patch });
   const isBuy = leg.positionType === 'BUY';
   const isCE  = leg.optionType  === 'CE';
+  const linkedContract = leg.marketContract;
 
-  const [isIvAuto, setIsIvAuto] = useState(false);
-  const [ivInvalid, setIvInvalid] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Upcoming expiry dates for this instrument
-  const expiries = useMemo(
-    () => getUpcomingExpiries(leg.instrument.symbol, 3),
-    [leg.instrument.symbol]
-  );
-
-  // Try to match current DTE to an expiry; fall back to 'custom'
-  const matchExpiry = (dte: number): string => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const target = new Date(today.getTime() + dte * 86_400_000);
-    const found = expiries.find(e => Math.abs(e.getTime() - target.getTime()) <= 2 * 86_400_000);
-    return found ? found.toISOString() : 'custom';
-  };
-
-  const [selectedExpiry, setSelectedExpiry] = useState(() => matchExpiry(leg.daysToExpiry));
-
-  // When instrument changes, regenerate expiry list and re-match
-  useEffect(() => {
-    setSelectedExpiry(matchExpiry(leg.daysToExpiry));
-    setIsIvAuto(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leg.instrument.symbol]);
+  // Calibration belongs to an exact set of model inputs; a live quote or manual
+  // change invalidates its badge without any delayed update to strategy state.
+  const calibrationKey = [leg.premium, futuresPrice, leg.strikePrice, leg.daysToExpiry,
+    riskFreeRate, leg.optionType, leg.instrument.symbol, leg.iv].join('|');
+  const [calibration, setCalibration] = useState<{ key: string; valid: boolean } | null>(null);
+  const [editedPremium, setEditedPremium] = useState<number | null>(null);
+  const isIvAuto = calibration?.key === calibrationKey && calibration.valid;
+  const ivInvalid = calibration?.key === calibrationKey && !calibration.valid;
 
   function handlePremiumChange(premium: number) {
     update({ premium });
-    setIsIvAuto(false);
-    setIvInvalid(false);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      const T = leg.daysToExpiry / 365;
-      const r = riskFreeRate / 100;
-      const iv = calculateIV(premium, futuresPrice, leg.strikePrice, T, r, leg.optionType);
-      if (iv !== null) {
-        onChange({ ...leg, premium, iv: parseFloat((iv * 100).toFixed(1)) });
-        setIsIvAuto(true);
-        setIvInvalid(false);
-      } else if (premium > 0) {
-        setIvInvalid(true);
-      }
-    }, 300);
+    setCalibration(null);
+    setEditedPremium(premium);
   }
 
-  function handleExpiryChange(isoStr: string) {
-    setSelectedExpiry(isoStr);
-    if (isoStr === 'custom') return;
-    const dte = calculateDTE(new Date(isoStr));
-    update({ daysToExpiry: dte });
+  function calibratePremium() {
+    if (linkedContract) return;
+    if (editedPremium === null || editedPremium !== leg.premium) return;
+    setEditedPremium(null);
+    const iv = calculateIV(leg.premium, futuresPrice, leg.strikePrice,
+      leg.daysToExpiry / 365, riskFreeRate / 100, leg.optionType);
+    if (iv === null) {
+      setCalibration({ key: calibrationKey, valid: false });
+      return;
+    }
+    const ivPercent = Number((iv * 100).toFixed(4));
+    update({ iv: ivPercent });
+    setCalibration({ key: [leg.premium, futuresPrice, leg.strikePrice,
+      leg.daysToExpiry, riskFreeRate, leg.optionType, leg.instrument.symbol, ivPercent].join('|'), valid: true });
   }
 
   const inputStyle: React.CSSProperties = {
@@ -118,6 +96,8 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
         </button>
 
         <button
+          disabled={!!linkedContract}
+          title={linkedContract ? 'Option type is fixed by the selected market contract' : 'Toggle call / put'}
           onClick={() => update({ optionType: isCE ? 'PE' : 'CE' })}
           className={`shrink-0 px-3 py-1 rounded text-xs font-bold tracking-wide transition-colors ${
             isCE ? 'bg-blue-600 text-white' : 'bg-orange-500 text-white'
@@ -127,6 +107,8 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
         </button>
 
         <select
+          aria-label="Instrument"
+          disabled={!!linkedContract}
           className={selCls} style={baseInput}
           value={leg.instrument.symbol}
           onChange={(e) => {
@@ -140,6 +122,7 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
         </select>
 
         <button
+          aria-label="Delete leg"
           onClick={() => onDelete(leg.id)}
           className="shrink-0 p-1 rounded transition-colors hover:text-red-400 hover:bg-red-500/10"
           style={{ color: 'var(--th-muted)' }}
@@ -153,19 +136,22 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
         <div>
           <span style={lbl} className="block">Strike</span>
           <input type="number" className={numCls} style={baseInput}
+            aria-label="Strike price" disabled={!!linkedContract} min={leg.instrument.tickSize}
             value={leg.strikePrice} step={leg.instrument.tickSize * 10}
-            onChange={(e) => update({ strikePrice: parseFloat(e.target.value) || 0 })} />
+            onChange={(e) => { const value = e.target.valueAsNumber; if (Number.isFinite(value) && value > 0) update({ strikePrice: value }); }} />
         </div>
         <div>
           <div className="flex items-center gap-1" style={{ marginBottom: 4 }}>
-            <span style={{ ...lbl, marginBottom: 0 }}>Premium</span>
+            <span style={{ ...lbl, marginBottom: 0 }} title="The original buy or sell price used for this position">Entry price</span>
             {ivInvalid && (
-              <span title="Premium may be below intrinsic value" style={{ color: '#ef4444', fontSize: 10 }}>⚠</span>
+              <span title="No finite implied volatility fits this premium and these model inputs" style={{ color: '#ef4444', fontSize: 10 }}>⚠</span>
             )}
           </div>
           <input type="number" className={numCls} style={inputStyle}
+            aria-label="Original entry price" title="Edit this to replay the price at which you originally bought or sold" min={0}
             value={leg.premium} step={leg.instrument.tickSize}
-            onChange={(e) => handlePremiumChange(parseFloat(e.target.value) || 0)} />
+            onChange={(e) => { const value = e.target.valueAsNumber; if (Number.isFinite(value) && value >= 0) handlePremiumChange(value); }}
+            onBlur={calibratePremium} />
         </div>
       </div>
 
@@ -189,37 +175,30 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
             )}
           </div>
           <input type="number" className={numCls} style={baseInput}
-            value={leg.iv} step={0.5} min={0.1} max={200}
-            onChange={(e) => { setIsIvAuto(false); update({ iv: parseFloat(e.target.value) || 1 }); }} />
+            aria-label="Implied volatility percent"
+            value={leg.iv} step={0.5} min={0}
+            onChange={(e) => { const value = e.target.valueAsNumber; if (Number.isFinite(value) && value >= 0) { setCalibration(null); update({ iv: value }); } }} />
         </div>
 
         <div>
-          <span style={lbl} className="block">Expiry</span>
-          <select
-            className={selCls} style={baseInput}
-            value={selectedExpiry}
-            onChange={e => handleExpiryChange(e.target.value)}
-          >
-            {expiries.map(d => (
-              <option key={d.toISOString()} value={d.toISOString()}>
-                {formatExpiry(d)} ({calculateDTE(d)}d)
-              </option>
-            ))}
-            <option value="custom">Custom ({leg.daysToExpiry}d)</option>
-          </select>
-          {selectedExpiry === 'custom' && (
-            <input type="number" className={`${numCls} mt-1`} style={baseInput}
-              value={leg.daysToExpiry} min={0} max={365}
-              placeholder="Days"
-              onChange={(e) => update({ daysToExpiry: parseInt(e.target.value) || 0 })} />
+          <span style={lbl} className="block">{linkedContract ? 'Expiry' : 'Days to expiry'}</span>
+          {linkedContract ? (
+            <div className="rounded px-2 py-1.5 text-[10px] text-center" style={baseInput} title={linkedContract.expiry}>
+              {new Date(expiryTime(linkedContract.expiry)).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit', timeZone: 'Asia/Kolkata' })}
+              <span className="block" style={{ color: 'var(--th-muted)' }}>{leg.daysToExpiry.toFixed(1)} days</span>
+            </div>
+          ) : (
+            <input type="number" className={numCls} style={baseInput}
+              aria-label="Days to expiry" value={leg.daysToExpiry} min={0}
+              onChange={(e) => { const value = e.target.valueAsNumber; if (Number.isFinite(value) && value >= 0) update({ daysToExpiry: value }); }} />
           )}
         </div>
 
         <div>
           <span style={lbl} className="block">Lots</span>
           <input type="number" className={numCls} style={baseInput}
-            value={leg.lots} min={1}
-            onChange={(e) => update({ lots: parseInt(e.target.value) || 1 })} />
+            aria-label="Lots" value={leg.lots} min={1} step={1}
+            onChange={(e) => { const value = e.target.valueAsNumber; if (Number.isInteger(value) && value >= 1) update({ lots: value }); }} />
         </div>
       </div>
     </div>

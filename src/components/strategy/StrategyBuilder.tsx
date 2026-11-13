@@ -1,23 +1,22 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { Plus, X } from 'lucide-react';
 import { LegRow } from './LegRow';
 import { SaveLoadPanel } from './SaveLoadPanel';
 import { MCX_INSTRUMENTS, DEFAULT_INSTRUMENT, getStrikeGap, roundToStrike } from '@/data/instruments';
-import { PREBUILT_STRATEGIES } from '@/lib/strategies';
-import { black76Price } from '@/lib/black76';
+import { PREBUILT_STRATEGIES, buildStrategyLegs } from '@/lib/strategies';
 import { useSavedStrategies } from '@/hooks/useSavedStrategies';
 import type { OptionLeg } from '@/types';
 
-let legCounter = 0;
 function newId() {
-  return `leg-${++legCounter}`;
+  return crypto.randomUUID();
 }
 
-function makeDefaultLeg(): OptionLeg {
-  const atm = roundToStrike(74000, getStrikeGap(DEFAULT_INSTRUMENT, 74000));
+function makeDefaultLeg(price: number, instrument = DEFAULT_INSTRUMENT): OptionLeg {
+  const atm = roundToStrike(price, getStrikeGap(instrument, price));
   return {
     id: newId(),
-    instrument: DEFAULT_INSTRUMENT,
+    instrument,
     positionType: 'BUY',
     optionType: 'CE',
     strikePrice: atm,
@@ -33,9 +32,12 @@ interface Props {
   underlyingPrice: number;
   riskFreeRate: number;
   isDark: boolean;
-  onLegsChange: (legs: OptionLeg[]) => void;
+  userId?: string | null;
+  onStrategySaved?: () => void;
+  onLegsChange: Dispatch<SetStateAction<OptionLeg[]>>;
   onUnderlyingChange: (price: number) => void;
   onRateChange: (rate: number) => void;
+  onLoadSnapshot: () => void;
 }
 
 export function StrategyBuilder({
@@ -43,58 +45,39 @@ export function StrategyBuilder({
   underlyingPrice,
   riskFreeRate,
   isDark,
+  userId = null,
+  onStrategySaved,
   onLegsChange,
   onUnderlyingChange,
   onRateChange,
+  onLoadSnapshot,
 }: Props) {
   const [selectedStrategy, setSelectedStrategy] = useState('');
-  const { strategies, saveStrategy, deleteStrategy, atLimit } = useSavedStrategies();
-
-  const strikeGap = useMemo(() => {
-    const inst = legs[0]?.instrument ?? DEFAULT_INSTRUMENT;
-    return getStrikeGap(inst, underlyingPrice);
-  }, [legs, underlyingPrice]);
+  const { strategies, saveStrategy, deleteStrategy, atLimit, error: saveError } = useSavedStrategies(userId);
 
   function addLeg() {
-    onLegsChange([...legs, makeDefaultLeg()]);
+    onLegsChange(previous => [...previous, makeDefaultLeg(underlyingPrice, previous[0]?.instrument)]);
   }
 
   function updateLeg(updated: OptionLeg) {
-    onLegsChange(legs.map((l) => (l.id === updated.id ? updated : l)));
+    onLegsChange(previous => previous.map((l) => (l.id === updated.id ? updated : l)));
   }
 
   function deleteLeg(id: string) {
-    onLegsChange(legs.filter((l) => l.id !== id));
+    onLegsChange(previous => previous.filter((l) => l.id !== id));
   }
 
   function applyStrategy(name: string) {
     if (name === '') return;
-    const template = PREBUILT_STRATEGIES.find((s) => s.name === name);
-    if (!template) return;
-
     const inst = legs[0]?.instrument ?? DEFAULT_INSTRUMENT;
-    const atmStrike = roundToStrike(underlyingPrice, strikeGap);
-
-    const T = 30 / 365;
-    const r = riskFreeRate / 100;
-    const sigma = 0.18;
-
-    const newLegs: OptionLeg[] = template.legs.map((tl) => {
-      const strikePrice = atmStrike + tl.strikeOffset * strikeGap;
-      const premium = Math.round(black76Price(underlyingPrice, strikePrice, T, r, sigma, tl.optionType));
-      return {
-        id: newId(),
-        instrument: inst,
-        positionType: tl.positionType,
-        optionType: tl.optionType,
-        strikePrice,
-        premium,
-        iv: 18,
-        daysToExpiry: 30,
-        lots: 1,
-      };
-    });
+    const newLegs = buildStrategyLegs(name, underlyingPrice, riskFreeRate, inst);
+    if (!newLegs.length) return;
     onLegsChange(newLegs);
+  }
+
+  function chooseStrategy(name: string) {
+    setSelectedStrategy(name);
+    applyStrategy(name);
   }
 
   const inputStyle = {
@@ -115,36 +98,43 @@ export function StrategyBuilder({
     <div className="flex flex-col gap-0">
 
       {/* ── Market inputs ── */}
-      <div className="px-4 pt-4 pb-4 border-b" style={sectionDivider}>
-        <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={labelStyle}>Market</p>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-[11px] block mb-1.5" style={labelStyle}>Futures Price (₹)</label>
-            <input type="number" className={inputCls} style={inputStyle}
-              value={underlyingPrice} step={1}
-              onChange={(e) => onUnderlyingChange(parseFloat(e.target.value) || 0)} />
+      {legs.length > 0 && <div className="px-4 pt-4 pb-4 border-b" style={sectionDivider}>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-semibold uppercase tracking-widest" style={labelStyle}>1 · Set the market</p>
+            <span className="text-[10px]" style={{ color: 'var(--th-muted)' }}>Model settings</span>
           </div>
-          <div>
-            <label className="text-[11px] block mb-1.5" style={labelStyle}>Risk-Free Rate (%)</label>
-            <input type="number" className={inputCls} style={inputStyle}
-              value={riskFreeRate} step={0.25} min={0} max={20}
-              onChange={(e) => onRateChange(parseFloat(e.target.value) || 0)} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] block mb-1.5" style={labelStyle}>Reference futures price (₹)</label>
+              <input type="number" className={inputCls} style={inputStyle}
+                value={Number(underlyingPrice.toFixed(4))} step={1} min={0.01}
+                onChange={(e) => { const value = Number(e.target.value); if (Number.isFinite(value) && value > 0) onUnderlyingChange(value); }} />
+            </div>
+            <div>
+              <label className="text-[11px] block mb-1.5" style={labelStyle}>Interest rate (%)</label>
+              <input type="number" className={inputCls} style={inputStyle}
+                value={riskFreeRate} step={0.25} min={0} max={20}
+                onChange={(e) => { const value = Number(e.target.value); if (Number.isFinite(value) && value >= 0 && value <= 20) onRateChange(value); }} />
+            </div>
           </div>
-        </div>
-      </div>
+        </div>}
 
       {/* ── Strategy template ── */}
       <div className="px-4 pt-4 pb-4 border-b" style={sectionDivider}>
-        <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={labelStyle}>Strategy Template</p>
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-[10px] font-semibold uppercase tracking-widest" style={labelStyle}>2 · Choose a strategy</p>
+          <span className="text-[10px]" style={{ color: 'var(--th-muted)' }}>Start faster</span>
+        </div>
+        <p className="text-[11px] leading-relaxed mb-3" style={{ color: 'var(--th-muted)' }}>Pick a view on the market. You can edit the positions after loading.</p>
         <div className="flex gap-2 items-center">
           <select
+            disabled={legs.some(leg => leg.marketContract)}
             className={selectCls}
             style={inputStyle}
             value={selectedStrategy}
             onChange={(e) => {
               const name = e.target.value;
-              setSelectedStrategy(name);
-              applyStrategy(name);
+              chooseStrategy(name);
             }}
           >
             <option value="">— Select a strategy to load —</option>
@@ -153,7 +143,7 @@ export function StrategyBuilder({
             ))}
           </select>
 
-          {selectedStrategy && (
+          {legs.length > 0 && (
             <button
               title="Clear strategy"
               onClick={() => { setSelectedStrategy(''); onLegsChange([]); }}
@@ -164,26 +154,51 @@ export function StrategyBuilder({
             </button>
           )}
         </div>
+        <div className="mt-3">
+          <p className="text-[10px] font-medium mb-2" style={{ color: 'var(--th-muted)' }}>Popular starting points</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {['Long Call', 'Long Put', 'Bull Call Spread', 'Long Straddle'].map(name => {
+              const template = PREBUILT_STRATEGIES.find(strategy => strategy.name === name);
+              if (!template) return null;
+              return <button
+                key={name}
+                type="button"
+                disabled={legs.some(leg => leg.marketContract)}
+                onClick={() => chooseStrategy(name)}
+                title={template.description}
+                className="group rounded-lg border px-2.5 py-2 text-left transition-colors hover:border-blue-400/60 hover:bg-blue-500/5 disabled:cursor-not-allowed disabled:opacity-45"
+                style={{ borderColor: 'var(--th-border2)', background: 'var(--th-input)' }}
+              >
+                <span className="block text-[11px] font-medium truncate">{name}</span>
+                <span className="mt-0.5 block text-[10px] truncate" style={{ color: 'var(--th-muted)' }}>{template.description.split('. ')[0]}</span>
+              </button>;
+            })}
+          </div>
+        </div>
       </div>
 
       {/* ── Legs ── */}
       <div className="px-4 pt-4 pb-4">
-        <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={labelStyle}>
-          Legs{legs.length > 0 && <span className="normal-case font-normal ml-1">({legs.length})</span>}
-        </p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest" style={labelStyle}>
+            3 · Check positions{legs.length > 0 && <span className="normal-case font-normal ml-1">({legs.length})</span>}
+          </p>
+          {legs.length > 0 && <span className="text-[10px]" style={{ color: 'var(--th-muted)' }}>Edit below</span>}
+        </div>
 
         {legs.length === 0 ? (
           <div
-            className="flex items-center justify-center py-5 text-xs border border-dashed rounded-lg mb-2"
+            className="flex flex-col items-center justify-center gap-1 py-5 px-3 text-xs text-center border border-dashed rounded-lg mb-2"
             style={{ color: 'var(--th-muted)', borderColor: 'var(--th-border2)' }}
           >
-            No legs — select a template or add manually
+            <span>No positions yet</span>
+            <span className="text-[10px]">Choose a strategy above or add a buy/sell position.</span>
           </div>
         ) : (
           <div className="flex flex-col gap-2 mb-2">
             {legs.map((leg) => (
               <LegRow
-                key={leg.id} leg={leg} instruments={MCX_INSTRUMENTS}
+                key={leg.id} leg={leg} instruments={leg.marketContract ? [leg.instrument] : legs.length > 1 ? [legs[0].instrument] : MCX_INSTRUMENTS}
                 isDark={isDark} futuresPrice={underlyingPrice} riskFreeRate={riskFreeRate}
                 onChange={updateLeg} onDelete={deleteLeg}
               />
@@ -193,29 +208,44 @@ export function StrategyBuilder({
 
         <button
           onClick={addLeg}
+          disabled={legs.some(leg => leg.marketContract) || legs.length >= 20}
           className="flex items-center gap-1.5 w-full justify-center px-3 py-2 rounded-lg border border-dashed transition-colors text-xs hover:opacity-80"
           style={{ color: 'var(--th-muted)', borderColor: 'var(--th-border2)' }}
         >
           <Plus className="w-3.5 h-3.5" />
-          Add Leg
+          Add position
         </button>
       </div>
 
       {/* ── Save / Load ── */}
-      <div className="px-4 pb-4 border-t pt-4" style={{ borderTopColor: 'var(--th-divider)' }}>
-        <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--th-muted)' }}>
-          Save / Load Strategy
-        </p>
+      {legs.length > 0 && <div className="px-4 pb-4 border-t pt-4" style={{ borderTopColor: 'var(--th-divider)' }}>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--th-muted)' }}>
+            Save / load strategy
+          </p>
+          <span className="text-[10px]" style={{ color: 'var(--th-muted)' }}>Optional</span>
+        </div>
         <SaveLoadPanel
           strategies={strategies}
           atLimit={atLimit}
           suggestedName={selectedStrategy}
           isDark={isDark}
-          onSave={(name) => saveStrategy(name, underlyingPrice, legs)}
-          onLoad={(s) => { onUnderlyingChange(s.futuresPrice); onLegsChange(s.legs); }}
+          saveError={saveError}
+          onSave={async (name) => {
+            const accepted = await saveStrategy(name, underlyingPrice, legs, riskFreeRate);
+            if (accepted) onStrategySaved?.();
+            return accepted;
+          }}
+          onLoad={(s) => {
+            onUnderlyingChange(s.futuresPrice);
+            onLegsChange(s.legs.map(leg => ({ ...leg, id: newId() })));
+            onRateChange(s.riskFreeRate ?? 6.5);
+            setSelectedStrategy('');
+            onLoadSnapshot();
+          }}
           onDelete={deleteStrategy}
         />
-      </div>
+        </div>}
 
     </div>
   );

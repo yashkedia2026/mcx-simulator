@@ -11,13 +11,15 @@ interface Props {
 }
 
 function fmtINR(v: number): string {
+  if (!Number.isFinite(v)) return '—';
   return new Intl.NumberFormat('en-IN', {
     style: 'currency', currency: 'INR', maximumFractionDigits: 0,
   }).format(v);
 }
 
 function fmtPrice(v: number): string {
-  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(v);
+  if (!Number.isFinite(v)) return '—';
+  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 4 }).format(v);
 }
 
 interface PnLRow {
@@ -40,17 +42,17 @@ export function PnLTable({ underlyingPrice, riskFreeRate, legs, breakevenPoints,
 
     // CMP ±5%, ±10%, ±15%, ±20%
     for (const pct of [0.80, 0.85, 0.90, 0.95, 1.00, 1.05, 1.10, 1.15, 1.20]) {
-      prices.add(Math.round(underlyingPrice * pct));
+      prices.add(underlyingPrice * pct);
     }
 
-    // Breakeven prices (rounded to nearest ₹10)
-    for (const be of breakevenPoints) prices.add(Math.round(be / 10) * 10);
+    // Compute P&L at exact breakevens; round only the displayed price.
+    for (const be of breakevenPoints) prices.add(be);
 
     // Strike prices from legs
     for (const leg of legs) prices.add(leg.strikePrice);
 
     const strikeSet = new Set(legs.map(l => l.strikePrice));
-    const beSet = new Set(breakevenPoints.map(b => Math.round(b / 10) * 10));
+    const beSet = new Set(breakevenPoints);
 
     return [...prices]
       .sort((a, b) => a - b)
@@ -61,7 +63,7 @@ export function PnLTable({ underlyingPrice, riskFreeRate, legs, breakevenPoints,
           movePercent: ((price - underlyingPrice) / underlyingPrice) * 100,
           expiryPnL,
           currentPnL,
-          isCMP: price === Math.round(underlyingPrice),
+          isCMP: price === underlyingPrice,
           isBreakeven: beSet.has(price),
           isStrike: strikeSet.has(price),
         };
@@ -112,7 +114,7 @@ export function PnLTable({ underlyingPrice, riskFreeRate, legs, breakevenPoints,
               <th className="px-3 py-2 text-left">Price</th>
               <th className="px-3 py-2 text-right">Move</th>
               <th className="px-3 py-2 text-right">Expiry P&amp;L</th>
-              <th className="px-3 py-2 text-right">Current P&amp;L</th>
+              <th className="px-3 py-2 text-right" title="Theoretical P&L from the Black-76 model">Model P&amp;L</th>
             </tr>
           </thead>
           <tbody>

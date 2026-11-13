@@ -9,6 +9,7 @@ interface Props {
 
 function fmtINR(v: number | 'Unlimited'): string {
   if (v === 'Unlimited') return '∞ Unlimited';
+  if (!Number.isFinite(v)) return '—';
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
@@ -17,7 +18,8 @@ function fmtINR(v: number | 'Unlimited'): string {
 }
 
 function fmtPrice(v: number): string {
-  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(v);
+  if (!Number.isFinite(v)) return '—';
+  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 4 }).format(v);
 }
 
 interface CardProps {
@@ -52,13 +54,14 @@ function Card({ icon: Icon, iconColor, label, value, valueColor, sub, tooltip }:
   );
 }
 
-export function SummaryPanel({ metrics, isDark: _isDark }: Props) {
+export function SummaryPanel({ metrics }: Props) {
   const { maxProfit, maxLoss, breakevenPoints, netPremium, probabilityOfProfit } = metrics;
 
   // Risk:Reward = how much you risk per ₹1 of potential profit
   // e.g. Iron Condor: risk ₹8k to make ₹42k → 1 : 0.19
   const rrRatio =
-    maxProfit !== 'Unlimited' && maxLoss !== 'Unlimited' && maxProfit !== 0
+    maxProfit !== 'Unlimited' && maxLoss !== 'Unlimited' && maxProfit !== 0 &&
+      Number.isFinite(maxProfit) && Number.isFinite(maxLoss)
       ? `1 : ${(Math.abs(maxLoss as number) / Math.abs(maxProfit as number)).toFixed(2)}`
       : '—';
 
@@ -118,9 +121,10 @@ export function SummaryPanel({ metrics, isDark: _isDark }: Props) {
         icon={Percent}
         iconColor="text-indigo-400"
         label="Prob. of Profit"
-        value={`${probabilityOfProfit.toFixed(1)}%`}
+        value={Number.isFinite(probabilityOfProfit) ? `${probabilityOfProfit.toFixed(1)}%` : '—'}
         valueColor={probabilityOfProfit >= 50 ? 'text-emerald-400' : 'text-gray-300'}
-        sub="based on expiry distribution"
+        sub="Lognormal model estimate"
+        tooltip="Approximate risk-neutral probability for one futures contract and expiry, using quantity-weighted RMS implied volatility. Unavailable for mixed futures or expiries."
       />
     </div>
   );

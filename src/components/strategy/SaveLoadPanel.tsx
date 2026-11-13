@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Save, Trash2, FolderOpen, ChevronDown, ChevronRight } from 'lucide-react';
 import type { SavedStrategy } from '@/hooks/useSavedStrategies';
 
@@ -7,7 +7,8 @@ interface Props {
   atLimit: boolean;
   suggestedName: string;
   isDark: boolean;
-  onSave: (name: string) => void;
+  onSave: (name: string) => boolean | void | Promise<boolean | void>;
+  saveError?: string | null;
   onLoad: (strategy: SavedStrategy) => void;
   onDelete: (id: string) => void;
 }
@@ -21,10 +22,14 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-export function SaveLoadPanel({ strategies, atLimit, suggestedName, isDark: _isDark, onSave, onLoad, onDelete }: Props) {
+export function SaveLoadPanel({ strategies, atLimit, suggestedName, onSave, saveError, onLoad, onDelete }: Props) {
   const [name, setName] = useState(suggestedName);
   const [open, setOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [savedMessage, setSavedMessage] = useState('');
+  const [saveLocked, setSaveLocked] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   // Keep name in sync when suggestedName changes externally (template loaded)
   if (name !== suggestedName && suggestedName !== '' && name === '') {
@@ -46,10 +51,28 @@ export function SaveLoadPanel({ strategies, atLimit, suggestedName, isDark: _isD
     return colors[symbol] ?? '#9ca3af';
   };
 
+  async function save() {
+    if (atLimit || saveLocked || savingRef.current || saving) return;
+    const nextName = (name || suggestedName).trim();
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      const accepted = await onSave(nextName);
+      if (accepted === false) return;
+      setSaveLocked(true);
+      setSavedMessage(`Strategy “${nextName || 'Unnamed strategy'}” saved.`);
+      setOpen(true);
+      setName('');
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-2">
       {/* Save row */}
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <input
           type="text"
           placeholder={atLimit ? 'Limit reached (20)' : 'Name this strategy…'}
@@ -57,19 +80,21 @@ export function SaveLoadPanel({ strategies, atLimit, suggestedName, isDark: _isD
           className="flex-1 rounded-md px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-colors"
           style={inputStyle}
           value={name}
-          onChange={e => setName(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !atLimit) { onSave(name); setName(''); } }}
+          onChange={e => { setName(e.target.value); setSaveLocked(false); setSavedMessage(''); savingRef.current = false; }}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void save(); } }}
         />
         <button
-          disabled={atLimit}
-          onClick={() => { onSave(name || suggestedName); setName(''); }}
-          className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold transition-colors disabled:opacity-40"
+          disabled={atLimit || saveLocked || saving}
+          onClick={() => { void save(); }}
+          className="shrink-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold transition-colors disabled:opacity-40"
           style={{ background: '#2979ff', color: '#fff' }}
         >
           <Save className="w-3.5 h-3.5" />
-          Save
+          {saving ? 'Saving…' : saveLocked ? 'Saved' : 'Save strategy'}
         </button>
       </div>
+      {savedMessage && <p role="status" className="text-[11px] text-emerald-400">✓ {savedMessage} Opened below.</p>}
+      {saveError && <p role="alert" className="text-[11px] text-red-400">{saveError}</p>}
 
       {/* Saved list toggle */}
       {strategies.length > 0 && (

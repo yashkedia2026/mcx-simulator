@@ -38,7 +38,7 @@ function Line({ label, value, bold, separator }: LineProps) {
   );
 }
 
-export function MarginPanel({ legs, futuresPrice, isDark: _isDark }: Props) {
+export function MarginPanel({ legs, futuresPrice }: Props) {
   if (legs.length === 0) return null;
 
   const m = calculateMargin(legs, futuresPrice);

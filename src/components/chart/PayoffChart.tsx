@@ -18,7 +18,7 @@ function fmtINR(v: number): string {
 }
 
 function fmtPrice(v: number): string {
-  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(v);
+  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 4 }).format(v);
 }
 
 export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints, legs, isDark }: Props) {
@@ -58,8 +58,8 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
   const zeroOffset = clamp((chartYMax / (chartYMax - chartYMin)) * 100, 2, 98);
 
   // Strong zone colors — immediately obvious
-  const profitColor = isDark ? '#00C864' : '#00B860';
-  const lossColor   = isDark ? '#FF5032' : '#FF4020';
+  const profitColor = isDark ? '#35E39A' : '#00B860';
+  const lossColor   = isDark ? '#FF7183' : '#FF4020';
 
   // ── Standard deviation ──
   const avgIV  = legs.length > 0 ? legs.reduce((s, l) => s + l.iv,  0) / legs.length / 100 : 0.18;
@@ -79,14 +79,18 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
 
   // ── Theme palette ──
   const bg       = isDark ? '#12122a' : '#ffffff';
-  const gridCol  = isDark ? 'rgba(255,255,255,0.06)' : '#e8e8e8';
-  const axisCol  = isDark ? '#4b5563' : '#555555';
-  const zeroLine = isDark ? 'rgba(255,255,255,0.7)' : '#000000';
+  const gridCol  = isDark ? 'rgba(148,163,184,0.18)' : '#e8e8e8';
+  const axisCol  = isDark ? '#AEBBD0' : '#555555';
+  const zeroLine = isDark ? '#DCE7F5' : '#000000';
+  const seriesColors = isDark
+    ? ['#FF9A62', '#6DBBFF', '#48E3A0']
+    : ['#FF6B35', '#1565C0', '#00C853'];
 
   const options: ApexOptions = {
     chart: {
       type: 'line',
       background: bg,
+      foreColor: axisCol,
       toolbar: {
         show: true,
         tools: { download: false, reset: true, zoom: true, zoomin: true, zoomout: true, pan: true },
@@ -108,14 +112,14 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
       },
     },
 
-    // Series: Expiry P&L (area for fill), Current P&L (line), Profit (line)
+    // Series: Expiry P&L (area for fill), Model P&L (line), Profit (line)
     series: [
       { name: 'Expiry P&L',  type: 'area', data: expiryData  },
-      { name: 'Current P&L', type: 'line', data: currentData },
+      { name: 'Model P&L', type: 'line', data: currentData },
       { name: 'Profit',      type: 'line', data: profitData  },
     ],
 
-    colors: ['#FF6B35', '#1565C0', '#00C853'],
+    colors: seriesColors,
 
     stroke: {
       width: [2.5, 2, 2.5],
@@ -134,10 +138,10 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
         type: 'vertical',
         shadeIntensity: 0,
         colorStops: [[
-          { offset: 0,              color: profitColor, opacity: isDark ? 0.30 : 0.20 },
-          { offset: zeroOffset - 1, color: profitColor, opacity: isDark ? 0.12 : 0.08 },
-          { offset: zeroOffset,     color: lossColor,   opacity: isDark ? 0.12 : 0.08 },
-          { offset: 100,            color: lossColor,   opacity: isDark ? 0.30 : 0.20 },
+          { offset: 0,              color: profitColor, opacity: isDark ? 0.25 : 0.20 },
+          { offset: zeroOffset - 1, color: profitColor, opacity: isDark ? 0.10 : 0.08 },
+          { offset: zeroOffset,     color: lossColor,   opacity: isDark ? 0.10 : 0.08 },
+          { offset: 100,            color: lossColor,   opacity: isDark ? 0.25 : 0.20 },
         ]],
       },
     },
@@ -160,7 +164,7 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
       },
       axisBorder: { color: gridCol },
       axisTicks: { color: gridCol },
-      crosshairs: { show: true, stroke: { color: isDark ? '#ffffff30' : '#cccccc', width: 1, dashArray: 3 } },
+      crosshairs: { show: true, stroke: { color: isDark ? '#DCE7F566' : '#cccccc', width: 1, dashArray: 3 } },
     },
 
     yaxis: {
@@ -200,7 +204,7 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
             offsetX: 24,
             style: {
               background: 'transparent',
-              color: isDark ? 'rgba(255,255,255,0.5)' : '#444444',
+              color: isDark ? '#B9C7DA' : '#444444',
               fontSize: '10px',
               fontWeight: '600',
               fontFamily: 'Inter, sans-serif',
@@ -214,7 +218,7 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
         // Sigma + CMP lines
         ...sigmaLevels.map(sl => ({
           x: sl.x,
-          borderColor: sl.isCMP ? '#2e7d32' : (isDark ? '#555555' : '#bbbbbb'),
+          borderColor: sl.isCMP ? '#35C981' : (isDark ? '#71829B' : '#bbbbbb'),
           strokeDashArray: 4,
           borderWidth: sl.isCMP ? 2 : 1,
           label: {
@@ -223,9 +227,9 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
             orientation: 'horizontal' as const,
             style: {
               background: sl.isCMP
-                ? (isDark ? '#1b3a1e' : '#e8f5e9')
-                : (isDark ? '#1e1e2e' : '#f5f5f5'),
-              color: sl.isCMP ? '#4caf50' : (isDark ? '#888888' : '#757575'),
+                ? (isDark ? '#123D2B' : '#e8f5e9')
+                : (isDark ? '#202A3F' : '#f5f5f5'),
+              color: sl.isCMP ? '#7AF0A9' : (isDark ? '#B9C7DA' : '#757575'),
               fontSize: '10px',
               fontWeight: sl.isCMP ? '700' : '500',
               fontFamily: 'Inter, sans-serif',
@@ -237,7 +241,7 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
         // Breakeven lines
         ...breakevenPoints.map(be => ({
           x: be,
-          borderColor: '#FF6B35',
+          borderColor: isDark ? '#FF9A62' : '#FF6B35',
           strokeDashArray: 5,
           borderWidth: 1.5,
           label: {
@@ -245,8 +249,8 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
             position: 'top' as const,
             orientation: 'horizontal' as const,
             style: {
-              background: isDark ? '#2a1506' : '#fff3ee',
-              color: '#d84315',
+              background: isDark ? '#42251D' : '#fff3ee',
+              color: isDark ? '#FFC0A1' : '#d84315',
               fontSize: '10px',
               fontWeight: '600',
               fontFamily: 'Inter, sans-serif',
@@ -262,7 +266,7 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
         y: 0,
         marker: {
           size: 5,
-          fillColor: '#FF6B35',
+          fillColor: isDark ? '#FF9A62' : '#FF6B35',
           strokeColor: isDark ? '#12122a' : '#ffffff',
           strokeWidth: 2,
           shape: 'circle' as const,
@@ -277,7 +281,7 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
       fontFamily: 'Inter, sans-serif',
       fontSize: '12px',
       fontWeight: '500',
-      labels: { colors: isDark ? '#9ca3af' : '#333333' },
+      labels: { colors: isDark ? '#D5DFEE' : '#333333' },
       markers: { size: 7, strokeWidth: 0, offsetX: -2 },
       itemMargin: { horizontal: 12 },
       offsetY: 2,

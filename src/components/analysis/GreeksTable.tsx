@@ -7,10 +7,12 @@ interface Props {
 }
 
 function fmtNum(v: number, d = 4) {
+  if (!Number.isFinite(v)) return '—';
   return v.toFixed(d);
 }
 
 function fmtINR(v: number) {
+  if (!Number.isFinite(v)) return '—';
   return new Intl.NumberFormat('en-IN', {
     style: 'currency', currency: 'INR', maximumFractionDigits: 0,
   }).format(v);
@@ -50,7 +52,7 @@ function Row({ symbol, name, symbolColor, value, valueColor, description }: RowP
 const GREEKS_TOOLTIP =
   'Greeks measure option price sensitivity. Delta = price change per ₹1 move, Gamma = delta rate of change, Theta = time decay per day, Vega = P&L per 1% IV change.';
 
-export function GreeksTable({ greeks, isDark: _isDark }: Props) {
+export function GreeksTable({ greeks }: Props) {
   const thetaNegative = greeks.theta < 0;
   const vegaPositive  = greeks.vega >= 0;
 
@@ -79,18 +81,18 @@ export function GreeksTable({ greeks, isDark: _isDark }: Props) {
       <tbody>
         <Row symbol="Δ" name="Delta" symbolColor="text-blue-400"
           value={fmtNum(greeks.delta, 4)} valueColor="text-blue-400"
-          description={`₹${fmtNum(Math.abs(greeks.delta), 0)} position change per ₹1 move`} />
+          description={Number.isFinite(greeks.delta) ? `₹${fmtNum(Math.abs(greeks.delta), 0)} position change per ₹1 move` : 'Unavailable for these model inputs'} />
         <Row symbol="Γ" name="Gamma" symbolColor="text-purple-400"
           value={fmtNum(greeks.gamma, 5)} valueColor="text-purple-400"
           description="Rate of delta change per ₹1 underlying move" />
         <Row symbol="Θ" name="Theta" symbolColor="text-red-400"
-          value={`${fmtINR(greeks.theta)}/day`}
-          valueColor={thetaNegative ? 'text-red-400' : 'text-emerald-400'}
-          description={thetaNegative ? 'Position loses this value each day' : 'Position gains this value each day'} />
+          value={Number.isFinite(greeks.theta) ? `${fmtINR(greeks.theta)}/day` : '—'}
+          valueColor={!Number.isFinite(greeks.theta) ? 'text-gray-400' : thetaNegative ? 'text-red-400' : 'text-emerald-400'}
+          description={!Number.isFinite(greeks.theta) ? 'Unavailable for these model inputs' : thetaNegative ? 'Position loses this value each day' : 'Position gains this value each day'} />
         <Row symbol="V" name="Vega" symbolColor="text-emerald-400"
-          value={`${fmtINR(greeks.vega)}/1%`}
-          valueColor={vegaPositive ? 'text-emerald-400' : 'text-red-400'}
-          description={vegaPositive ? 'Profits when IV rises 1%' : 'Loses when IV rises 1%'} />
+          value={Number.isFinite(greeks.vega) ? `${fmtINR(greeks.vega)}/1%` : '—'}
+          valueColor={!Number.isFinite(greeks.vega) ? 'text-gray-400' : vegaPositive ? 'text-emerald-400' : 'text-red-400'}
+          description={!Number.isFinite(greeks.vega) ? 'Unavailable for these model inputs' : vegaPositive ? 'Profits when IV rises 1%' : 'Loses when IV rises 1%'} />
       </tbody>
     </table>
   );

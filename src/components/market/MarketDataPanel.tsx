@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Radio, RefreshCw } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronDown, Radio, RefreshCw } from 'lucide-react';
 import type { OptionLeg, PositionType } from '@/types';
 import type { MarketContract, MarketQuote, MarketStatus } from '@/types/market';
 import { createMarketLeg, expiryTime, isFreshQuote, marketPnL, matchesMarketContract, quoteMark } from '@/lib/marketData';
@@ -24,6 +24,89 @@ const money = (value: number | null | undefined) => value == null ? '—' :
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(value);
 const dateLabel = (expiry: string) => new Date(expiryTime(expiry)).toLocaleDateString('en-IN',
   { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+
+interface MarketOption {
+  value: string;
+  label: string;
+}
+
+interface MarketComboBoxProps {
+  id: string;
+  value: string;
+  options: MarketOption[];
+  ariaLabel: string;
+  className: string;
+  style: React.CSSProperties;
+  onChange: (value: string) => void;
+}
+
+/**
+ * A text-backed select keeps the compact select appearance while making long
+ * market lists usable from the keyboard. Users can type to jump to a value,
+ * use ArrowDown to open the browser suggestions, and press Enter to commit.
+ */
+function MarketComboBox({ id, value, options, ariaLabel, className, style, onChange }: MarketComboBoxProps) {
+  const selectedLabel = options.find(option => option.value === value)?.label ?? '';
+  const [text, setText] = useState(selectedLabel);
+  const focused = useRef(false);
+
+  useEffect(() => {
+    if (!focused.current) setText(selectedLabel);
+  }, [selectedLabel]);
+
+  function commit(nextText: string) {
+    const match = options.find(option => option.label.toLocaleLowerCase() === nextText.trim().toLocaleLowerCase());
+    if (match) {
+      onChange(match.value);
+      setText(match.label);
+    }
+  }
+
+  return (
+    <div className="relative mt-1">
+      <input
+        type="text"
+        id={id}
+        role="combobox"
+        aria-label={ariaLabel}
+        aria-autocomplete="list"
+        autoComplete="off"
+        list={`${id}-options`}
+        value={text}
+        className={`${className} pr-8`}
+        style={style}
+        onFocus={event => {
+          focused.current = true;
+          event.currentTarget.select();
+        }}
+        onChange={event => {
+          const nextText = event.target.value;
+          setText(nextText);
+          commit(nextText);
+        }}
+        onKeyDown={event => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            commit(text);
+          } else if (event.key === 'Escape') {
+            event.preventDefault();
+            setText(selectedLabel);
+            event.currentTarget.blur();
+          }
+        }}
+        onBlur={() => {
+          commit(text);
+          focused.current = false;
+          setText(options.find(option => option.value === value)?.label ?? '');
+        }}
+      />
+      <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: 'var(--th-muted)' }} />
+      <datalist id={`${id}-options`}>
+        {options.map(option => <option key={option.value} value={option.label} />)}
+      </datalist>
+    </div>
+  );
+}
 
 export function MarketDataPanel(props: Props) {
   const { contracts, quotes, status, enabled, loading, error, now, legs, riskFreeRate,
@@ -119,18 +202,26 @@ export function MarketDataPanel(props: Props) {
     </>}
     {symbols.length > 0 && <>
       <div className="grid grid-cols-2 gap-2">
-        <label className="text-[11px]">Commodity<select aria-label="Live commodity" value={symbol} className={selectClass}
-          style={selectStyle} onChange={e => { setSymbolChoice(e.target.value); setOptionChoice(0); setAddError(''); }}>
-          {symbols.map(s => <option key={s}>{s}</option>)}</select></label>
-        <label className="text-[11px]">Option expiry<select aria-label="Live expiry" value={expiry} className={selectClass}
-          style={selectStyle} onChange={e => { setExpiryChoice(e.target.value); setOptionChoice(0); setAddError(''); }}>
-          {expiries.map(e => <option key={e} value={e}>{dateLabel(e)}</option>)}</select></label>
-        <label className="text-[11px]">Option type<select aria-label="Live option type" value={kind} className={selectClass}
-          style={selectStyle} onChange={e => { setKind(e.target.value as 'CE' | 'PE'); setOptionChoice(0); setAddError(''); }}>
-          <option value="CE">Call · CE</option><option value="PE">Put · PE</option></select></label>
-        <label className="text-[11px]">Strike<select aria-label="Live strike" value={option?.id ?? ''} className={selectClass}
-          style={selectStyle} onChange={e => { setOptionChoice(Number(e.target.value)); setAddError(''); }}>
-          {options.map(c => <option key={c.id} value={c.id}>{c.strike?.toLocaleString('en-IN')}</option>)}</select></label>
+        <label htmlFor="market-commodity" className="text-[11px]">Commodity
+          <MarketComboBox id="market-commodity" ariaLabel="Live commodity" value={symbol}
+            options={symbols.map(s => ({ value: s, label: s }))} className={selectClass} style={selectStyle}
+            onChange={next => { setSymbolChoice(next); setOptionChoice(0); setAddError(''); }} />
+        </label>
+        <label htmlFor="market-expiry" className="text-[11px]">Option expiry
+          <MarketComboBox id="market-expiry" ariaLabel="Live option expiry" value={expiry}
+            options={expiries.map(next => ({ value: next, label: dateLabel(next) }))} className={selectClass} style={selectStyle}
+            onChange={next => { setExpiryChoice(next); setOptionChoice(0); setAddError(''); }} />
+        </label>
+        <label htmlFor="market-option-type" className="text-[11px]">Option type
+          <MarketComboBox id="market-option-type" ariaLabel="Live option type" value={kind}
+            options={[{ value: 'CE', label: 'Call · CE' }, { value: 'PE', label: 'Put · PE' }]} className={selectClass} style={selectStyle}
+            onChange={next => { setKind(next as 'CE' | 'PE'); setOptionChoice(0); setAddError(''); }} />
+        </label>
+        <label htmlFor="market-strike" className="text-[11px]">Strike
+          <MarketComboBox id="market-strike" ariaLabel="Live strike" value={option?.id == null ? '' : String(option.id)}
+            options={options.map(c => ({ value: String(c.id), label: c.strike?.toLocaleString('en-IN') ?? String(c.id) }))} className={selectClass} style={selectStyle}
+            onChange={next => { setOptionChoice(Number(next)); setAddError(''); }} />
+        </label>
       </div>
       <label className="block text-[11px]">Lots to add
         <input type="number" min={1} max={1000} step={1} value={lots} inputMode="numeric" aria-label="Lots to add" className="mt-1 w-full rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50" style={selectStyle}

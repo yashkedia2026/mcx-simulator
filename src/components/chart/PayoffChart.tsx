@@ -32,7 +32,7 @@ export function PayoffChart({ data, underlyingPrice, instrument, breakevenPoints
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
             d="M7 12l3-3 3 3 4-4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
         </svg>
-        <p className="text-xs" style={{ color: isDark ? '#6b7280' : '#9ca3af' }}>
+        <p className="text-xs" style={{ color: 'var(--th-muted)' }}>
           Add legs to see the payoff diagram
         </p>
       </div>

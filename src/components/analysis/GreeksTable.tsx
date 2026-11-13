@@ -87,11 +87,11 @@ export function GreeksTable({ greeks }: Props) {
           description="Rate of delta change per ₹1 underlying move" />
         <Row symbol="Θ" name="Theta" symbolColor="text-red-400"
           value={Number.isFinite(greeks.theta) ? `${fmtINR(greeks.theta)}/day` : '—'}
-          valueColor={!Number.isFinite(greeks.theta) ? 'text-gray-400' : thetaNegative ? 'text-red-400' : 'text-emerald-400'}
+          valueColor={!Number.isFinite(greeks.theta) ? 'text-slate-500 dark:text-slate-400' : thetaNegative ? 'text-red-400' : 'text-emerald-400'}
           description={!Number.isFinite(greeks.theta) ? 'Unavailable for these model inputs' : thetaNegative ? 'Position loses this value each day' : 'Position gains this value each day'} />
         <Row symbol="V" name="Vega" symbolColor="text-emerald-400"
           value={Number.isFinite(greeks.vega) ? `${fmtINR(greeks.vega)}/1%` : '—'}
-          valueColor={!Number.isFinite(greeks.vega) ? 'text-gray-400' : vegaPositive ? 'text-emerald-400' : 'text-red-400'}
+          valueColor={!Number.isFinite(greeks.vega) ? 'text-slate-500 dark:text-slate-400' : vegaPositive ? 'text-emerald-400' : 'text-red-400'}
           description={!Number.isFinite(greeks.vega) ? 'Unavailable for these model inputs' : vegaPositive ? 'Profits when IV rises 1%' : 'Loses when IV rises 1%'} />
       </tbody>
     </table>

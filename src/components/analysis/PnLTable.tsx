@@ -74,7 +74,7 @@ export function PnLTable({ underlyingPrice, riskFreeRate, legs, breakevenPoints,
   if (legs.length === 0) return null;
 
   const pnlColor = (v: number) =>
-    v > 0 ? '#00c853' : v < 0 ? '#ff1744' : (isDark ? '#9ca3af' : '#666666');
+    v > 0 ? 'var(--th-positive)' : v < 0 ? 'var(--th-negative)' : 'var(--th-muted)';
 
   const headerStyle: React.CSSProperties = {
     background: 'var(--th-input)',

@@ -29,7 +29,7 @@ export function Header({ isDark, onToggleTheme, marketConnected, userEmail, onSi
         >
           MCX Options Simulator
         </span>
-        <span className="text-gray-400 text-xs hidden sm:inline">· Black-76 Model</span>
+        <span className="text-xs hidden sm:inline" style={{ color: 'var(--th-muted)' }}>· Black-76 Model</span>
       </div>
 
       <div className="ml-auto flex items-center gap-2">
@@ -56,7 +56,7 @@ export function Header({ isDark, onToggleTheme, marketConnected, userEmail, onSi
 
         <span
           className="hidden sm:flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px]"
-          style={{ borderColor: 'var(--th-border2)', color: marketConnected ? '#00c853' : 'var(--th-muted)' }}
+          style={{ borderColor: 'var(--th-border2)', color: marketConnected ? 'var(--th-positive)' : 'var(--th-muted)' }}
         >
           <Radio className="w-3.5 h-3.5" />
           {marketConnected ? 'Live data connected' : 'Live data will connect automatically'}

@@ -17,15 +17,15 @@ export function ToastStack({ toasts, onDismiss }: Props) {
           className="flex items-center gap-2 pl-3 pr-2 py-2.5 rounded-lg text-xs shadow-lg transition-colors"
           style={{
             background: 'var(--th-card)',
-            border: `1px solid ${t.type === 'success' ? 'rgba(0,200,83,0.4)' : 'rgba(255,23,68,0.4)'}`,
+            border: `1px solid color-mix(in srgb, var(${t.type === 'success' ? '--th-positive' : '--th-negative'}) 45%, transparent)`,
             color: 'var(--th-text)',
             minWidth: 220,
             maxWidth: 320,
           }}
         >
           {t.type === 'success'
-            ? <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: '#00c853' }} />
-            : <XCircle className="w-4 h-4 shrink-0" style={{ color: '#ff1744' }} />
+            ? <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: 'var(--th-positive)' }} />
+            : <XCircle className="w-4 h-4 shrink-0" style={{ color: 'var(--th-negative)' }} />
           }
           <span className="flex-1">{t.text}</span>
           <button

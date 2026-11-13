@@ -152,7 +152,7 @@ export default function App() {
               Start with live MCX quotes or model a scenario manually.
             </p>
             {draft.status !== 'idle' && (
-              <p role="status" className="mt-2 text-[10px]" style={{ color: draft.syncError ? '#f59e0b' : 'var(--th-muted)' }}>
+              <p role="status" className="mt-2 text-[10px]" style={{ color: draft.syncError ? 'var(--th-warning)' : 'var(--th-muted)' }}>
                 {draft.status === 'draft-found' ? 'Unsaved draft found' : draft.status === 'saving' ? 'Saving draft…' : 'Draft saved'}
                 {draft.lastSavedAt && draft.status === 'saved' && ` · ${new Date(draft.lastSavedAt).toLocaleTimeString('en-IN')}`}
                 {draft.syncError && ' · local copy is safe; cloud sync unavailable'}

@@ -105,15 +105,17 @@ export function StrategyBuilder({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] block mb-1.5" style={labelStyle}>Reference futures price (₹)</label>
-              <input type="number" className={inputCls} style={inputStyle}
+              <label htmlFor="reference-futures-price" className="text-[11px] block mb-1.5" style={labelStyle}>Reference futures price (₹)</label>
+              <input id="reference-futures-price" type="number" inputMode="decimal" aria-label="Reference futures price" className={inputCls} style={inputStyle}
                 value={Number(underlyingPrice.toFixed(4))} step={1} min={0.01}
+                onFocus={e => e.currentTarget.select()}
                 onChange={(e) => { const value = Number(e.target.value); if (Number.isFinite(value) && value > 0) onUnderlyingChange(value); }} />
             </div>
             <div>
-              <label className="text-[11px] block mb-1.5" style={labelStyle}>Interest rate (%)</label>
-              <input type="number" className={inputCls} style={inputStyle}
+              <label htmlFor="interest-rate" className="text-[11px] block mb-1.5" style={labelStyle}>Interest rate (%)</label>
+              <input id="interest-rate" type="number" inputMode="decimal" aria-label="Interest rate" className={inputCls} style={inputStyle}
                 value={riskFreeRate} step={0.25} min={0} max={20}
+                onFocus={e => e.currentTarget.select()}
                 onChange={(e) => { const value = Number(e.target.value); if (Number.isFinite(value) && value >= 0 && value <= 20) onRateChange(value); }} />
             </div>
           </div>
@@ -199,7 +201,7 @@ export function StrategyBuilder({
             {legs.map((leg) => (
               <LegRow
                 key={leg.id} leg={leg} instruments={leg.marketContract ? [leg.instrument] : legs.length > 1 ? [legs[0].instrument] : MCX_INSTRUMENTS}
-                isDark={isDark} futuresPrice={underlyingPrice} riskFreeRate={riskFreeRate}
+                futuresPrice={underlyingPrice} riskFreeRate={riskFreeRate}
                 onChange={updateLeg} onDelete={deleteLeg}
               />
             ))}

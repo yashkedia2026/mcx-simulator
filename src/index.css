@@ -49,24 +49,24 @@
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+    --background: oklch(0.975 0.008 260);
+    --foreground: oklch(0.205 0.025 260);
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
+    --card-foreground: oklch(0.205 0.025 260);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.205 0.025 260);
+    --primary: oklch(0.55 0.22 260);
     --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.95 0.015 260);
+    --secondary-foreground: oklch(0.25 0.03 260);
+    --muted: oklch(0.95 0.015 260);
+    --muted-foreground: oklch(0.48 0.035 260);
+    --accent: oklch(0.95 0.02 260);
+    --accent-foreground: oklch(0.25 0.03 260);
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
+    --border: oklch(0.88 0.025 260);
+    --input: oklch(0.88 0.025 260);
+    --ring: oklch(0.62 0.18 260);
     --radius: 0.625rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
@@ -76,6 +76,35 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+}
+
+/* Keep Tailwind/shadcn utility colors in step with the app theme. */
+.dark {
+    --background: oklch(0.12 0.025 270);
+    --foreground: oklch(0.965 0.012 260);
+    --card: oklch(0.19 0.035 270);
+    --card-foreground: oklch(0.965 0.012 260);
+    --popover: oklch(0.19 0.035 270);
+    --popover-foreground: oklch(0.965 0.012 260);
+    --primary: oklch(0.66 0.19 260);
+    --primary-foreground: oklch(0.15 0.025 270);
+    --secondary: oklch(0.24 0.035 270);
+    --secondary-foreground: oklch(0.93 0.015 260);
+    --muted: oklch(0.24 0.035 270);
+    --muted-foreground: oklch(0.72 0.025 260);
+    --accent: oklch(0.25 0.045 270);
+    --accent-foreground: oklch(0.965 0.012 260);
+    --border: oklch(0.31 0.04 270);
+    --input: oklch(0.31 0.04 270);
+    --ring: oklch(0.66 0.19 260);
+    --sidebar: oklch(0.15 0.03 270);
+    --sidebar-foreground: oklch(0.965 0.012 260);
+    --sidebar-primary: oklch(0.66 0.19 260);
+    --sidebar-primary-foreground: oklch(0.15 0.025 270);
+    --sidebar-accent: oklch(0.24 0.035 270);
+    --sidebar-accent-foreground: oklch(0.965 0.012 260);
+    --sidebar-border: oklch(0.31 0.04 270);
+    --sidebar-ring: oklch(0.66 0.19 260);
 }
 
 @layer base {
@@ -91,27 +120,40 @@
 
 /* ── App theme tokens ── */
 :root {
-  --th-bg:      #f5f5f5;
-  --th-panel:   #ffffff;
-  --th-card:    #ffffff;
-  --th-input:   #f9f9f9;
-  --th-border:  #e0e0e0;
-  --th-border2: #ebebeb;
-  --th-text:    #1a1a2a;
-  --th-muted:   #666666;
-  --th-divider: #e8e8e8;
+  --th-bg:       #f4f7fb;
+  --th-panel:    #f8faff;
+  --th-card:     #ffffff;
+  --th-input:    #f8fafc;
+  --th-border:   #d8e0ec;
+  --th-border2:  #e3e9f2;
+  --th-text:     #172033;
+  --th-muted:    #59677b;
+  --th-divider:  #e5eaf2;
+  --th-positive: #078a52;
+  --th-negative: #d9384f;
+  --th-warning:  #a16207;
+  --th-link:     #1d4ed8;
+  --th-overlay:  rgba(15, 23, 42, 0.42);
 }
 .dark {
-  --th-bg:      #0a0a14;
-  --th-panel:   #0d0d1e;
-  --th-card:    #1e2035;
-  --th-input:   #0f0f1a;
-  --th-border:  rgba(255,255,255,0.06);
-  --th-border2: rgba(255,255,255,0.10);
-  --th-text:    #ffffff;
-  --th-muted:   #9ca3af;
-  --th-divider: rgba(255,255,255,0.06);
+  --th-bg:       #080b14;
+  --th-panel:    #0d1120;
+  --th-card:     #171d2f;
+  --th-input:    #0f1526;
+  --th-border:   rgba(184, 201, 230, 0.18);
+  --th-border2:  rgba(184, 201, 230, 0.25);
+  --th-text:     #f4f7fb;
+  --th-muted:    #aeb8c8;
+  --th-divider:  rgba(184, 201, 230, 0.14);
+  --th-positive: #28d17c;
+  --th-negative: #ff667d;
+  --th-warning:  #fbbf24;
+  --th-link:     #72a7ff;
+  --th-overlay:  rgba(0, 0, 0, 0.68);
 }
+
+html.light { color-scheme: light; }
+html.dark { color-scheme: dark; }
 
 /* ── Thin dark custom scrollbar ── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }

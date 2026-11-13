@@ -41,15 +41,18 @@ function Card({ icon: Icon, iconColor, label, value, valueColor, sub, tooltip }:
       <div className="flex items-center gap-1.5">
         <Icon className={`w-3 h-3 ${iconColor} shrink-0`} />
         <span
-          className="text-[10px] text-gray-500 font-medium uppercase tracking-wider leading-none"
+          className="text-[10px] font-medium uppercase tracking-wider leading-none"
           title={tooltip}
-          style={tooltip ? { cursor: 'help', textDecorationLine: 'underline', textDecorationStyle: 'dotted' } : undefined}
+          style={{
+            color: 'var(--th-muted)',
+            ...(tooltip ? { cursor: 'help', textDecorationLine: 'underline', textDecorationStyle: 'dotted' } : {}),
+          }}
         >
           {label}
         </span>
       </div>
       <p className={`text-sm font-bold leading-tight ${valueColor} truncate`}>{value}</p>
-      {sub && <p className="text-[10px] text-gray-600 leading-none">{sub}</p>}
+      {sub && <p className="text-[10px] leading-none" style={{ color: 'var(--th-muted)' }}>{sub}</p>}
     </div>
   );
 }
@@ -122,7 +125,7 @@ export function SummaryPanel({ metrics }: Props) {
         iconColor="text-indigo-400"
         label="Prob. of Profit"
         value={Number.isFinite(probabilityOfProfit) ? `${probabilityOfProfit.toFixed(1)}%` : '—'}
-        valueColor={probabilityOfProfit >= 50 ? 'text-emerald-400' : 'text-gray-300'}
+        valueColor={probabilityOfProfit >= 50 ? 'text-emerald-400' : 'text-slate-700 dark:text-slate-200'}
         sub="Lognormal model estimate"
         tooltip="Approximate risk-neutral probability for one futures contract and expiry, using quantity-weighted RMS implied volatility. Unavailable for mixed futures or expiries."
       />

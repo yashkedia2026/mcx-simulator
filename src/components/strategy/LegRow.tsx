@@ -7,14 +7,13 @@ import type { OptionLeg, Instrument } from '@/types';
 interface Props {
   leg: OptionLeg;
   instruments: Instrument[];
-  isDark: boolean;
   futuresPrice: number;
   riskFreeRate: number;
   onChange: (updated: OptionLeg) => void;
   onDelete: (id: string) => void;
 }
 
-export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, onChange, onDelete }: Props) {
+export function LegRow({ leg, instruments, futuresPrice, riskFreeRate, onChange, onDelete }: Props) {
   const update = (patch: Partial<OptionLeg>) => onChange({ ...leg, ...patch });
   const isBuy = leg.positionType === 'BUY';
   const isCE  = leg.optionType  === 'CE';
@@ -72,7 +71,7 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
   const lbl: React.CSSProperties = {
     fontSize: 10,
     marginBottom: 4,
-    color: isDark ? '#6b7280' : '#888888',
+    color: 'var(--th-muted)',
   };
 
   return (
@@ -81,16 +80,18 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
       style={{
         background: 'var(--th-card)',
         border: '1px solid var(--th-border)',
-        borderLeft: `3px solid ${isBuy ? '#00c853' : '#ff1744'}`,
+        borderLeft: `3px solid var(${isBuy ? '--th-positive' : '--th-negative'})`,
       }}
     >
       {/* Row 1: BUY/SELL · CE/PE · Instrument · Delete */}
       <div className="flex items-center gap-2">
         <button
           onClick={() => update({ positionType: isBuy ? 'SELL' : 'BUY' })}
-          className={`shrink-0 px-3 py-1 rounded text-xs font-bold tracking-wide transition-colors ${
-            isBuy ? 'bg-[#00c853] text-black' : 'bg-[#ff1744] text-white'
-          }`}
+          className="shrink-0 px-3 py-1 rounded text-xs font-bold tracking-wide transition-colors"
+          style={{
+            background: `var(${isBuy ? '--th-positive' : '--th-negative'})`,
+            color: isBuy ? '#052e16' : '#fff',
+          }}
         >
           {isBuy ? 'BUY' : 'SELL'}
         </button>
@@ -135,9 +136,10 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
       <div className="grid grid-cols-2 gap-2">
         <div>
           <span style={lbl} className="block">Strike</span>
-          <input type="number" className={numCls} style={baseInput}
+          <input type="number" inputMode="decimal" className={numCls} style={baseInput}
             aria-label="Strike price" disabled={!!linkedContract} min={leg.instrument.tickSize}
             value={leg.strikePrice} step={leg.instrument.tickSize * 10}
+            onFocus={e => e.currentTarget.select()}
             onChange={(e) => { const value = e.target.valueAsNumber; if (Number.isFinite(value) && value > 0) update({ strikePrice: value }); }} />
         </div>
         <div>
@@ -147,9 +149,10 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
               <span title="No finite implied volatility fits this premium and these model inputs" style={{ color: '#ef4444', fontSize: 10 }}>⚠</span>
             )}
           </div>
-          <input type="number" className={numCls} style={inputStyle}
+          <input type="number" inputMode="decimal" className={numCls} style={inputStyle}
             aria-label="Original entry price" title="Edit this to replay the price at which you originally bought or sold" min={0}
             value={leg.premium} step={leg.instrument.tickSize}
+            onFocus={e => e.currentTarget.select()}
             onChange={(e) => { const value = e.target.valueAsNumber; if (Number.isFinite(value) && value >= 0) handlePremiumChange(value); }}
             onBlur={calibratePremium} />
         </div>
@@ -165,7 +168,7 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
                 title="Auto-calculated from premium"
                 style={{
                   fontSize: 8, fontWeight: 700,
-                  background: '#00c853', color: '#000',
+                  background: 'var(--th-positive)', color: '#052e16',
                   borderRadius: 3, padding: '1px 3px',
                   cursor: 'default',
                 }}
@@ -174,9 +177,10 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
               </span>
             )}
           </div>
-          <input type="number" className={numCls} style={baseInput}
+          <input type="number" inputMode="decimal" className={numCls} style={baseInput}
             aria-label="Implied volatility percent"
             value={leg.iv} step={0.5} min={0}
+            onFocus={e => e.currentTarget.select()}
             onChange={(e) => { const value = e.target.valueAsNumber; if (Number.isFinite(value) && value >= 0) { setCalibration(null); update({ iv: value }); } }} />
         </div>
 
@@ -188,16 +192,18 @@ export function LegRow({ leg, instruments, isDark, futuresPrice, riskFreeRate, o
               <span className="block" style={{ color: 'var(--th-muted)' }}>{leg.daysToExpiry.toFixed(1)} days</span>
             </div>
           ) : (
-            <input type="number" className={numCls} style={baseInput}
+            <input type="number" inputMode="numeric" className={numCls} style={baseInput}
               aria-label="Days to expiry" value={leg.daysToExpiry} min={0}
+              onFocus={e => e.currentTarget.select()}
               onChange={(e) => { const value = e.target.valueAsNumber; if (Number.isFinite(value) && value >= 0) update({ daysToExpiry: value }); }} />
           )}
         </div>
 
         <div>
           <span style={lbl} className="block">Lots</span>
-          <input type="number" className={numCls} style={baseInput}
+          <input type="number" inputMode="numeric" className={numCls} style={baseInput}
             aria-label="Lots" value={leg.lots} min={1} step={1}
+            onFocus={e => e.currentTarget.select()}
             onChange={(e) => { const value = e.target.valueAsNumber; if (Number.isInteger(value) && value >= 1) update({ lots: value }); }} />
         </div>
       </div>

@@ -146,9 +146,9 @@ export function useSavedStrategies(userId: string | null = null) {
     if (!cloudEnabled) writeLocalStrategies(strategies);
   }, [cloudEnabled, strategies]);
 
-  async function saveStrategy(name: string, futuresPrice: number, legs: OptionLeg[], riskFreeRate = 6.5): Promise<boolean> {
+  async function saveStrategy(name: string, futuresPrice: number, legs: OptionLeg[], riskFreeRate = 6.5): Promise<SavedStrategy | null> {
     if (strategies.length >= MAX_STRATEGIES || !finite(futuresPrice) || futuresPrice <= 0 ||
-      !finite(riskFreeRate) || !legs.every(isLeg)) return false;
+      !finite(riskFreeRate) || !legs.every(isLeg)) return null;
 
     const client = supabase;
     if (cloudEnabled && userId && client) {
@@ -167,15 +167,15 @@ export function useSavedStrategies(userId: string | null = null) {
 
       if (insertError || !data || !isRecord(data)) {
         setError(insertError?.message ?? 'Unable to save strategy.');
-        return false;
+        return null;
       }
       const saved = mapCloudRow(data);
       if (!saved) {
         setError('The saved strategy returned an invalid shape.');
-        return false;
+        return null;
       }
       setStrategies(previous => [saved, ...previous].slice(0, MAX_STRATEGIES));
-      return true;
+      return saved;
     }
 
     const entry: SavedStrategy = {
@@ -188,6 +188,41 @@ export function useSavedStrategies(userId: string | null = null) {
       savedAt: new Date().toISOString(),
     };
     setStrategies(previous => previous.length < MAX_STRATEGIES ? [entry, ...previous] : previous);
+    return entry;
+  }
+
+  async function updateStrategy(id: string, futuresPrice: number, legs: OptionLeg[], riskFreeRate = 6.5): Promise<boolean> {
+    if (!id || !finite(futuresPrice) || futuresPrice <= 0 || !finite(riskFreeRate) || !legs.every(isLeg)) return false;
+    const existing = strategies.find(strategy => strategy.id === id);
+    if (!existing) return false;
+    const client = supabase;
+    const payload = {
+      instrument: legs[0]?.instrument.symbol ?? existing.instrument,
+      futures_price: futuresPrice,
+      risk_free_rate: riskFreeRate,
+      legs,
+    };
+
+    if (cloudEnabled && userId && client) {
+      const { error: updateError } = await client
+        .from('strategies')
+        .update(payload)
+        .eq('id', id)
+        .eq('user_id', userId);
+      if (updateError) {
+        setError(updateError.message);
+        return false;
+      }
+    }
+
+    setStrategies(previous => previous.map(strategy => strategy.id === id ? {
+      ...strategy,
+      instrument: payload.instrument,
+      futuresPrice,
+      riskFreeRate,
+      legs: structuredClone(legs),
+    } : strategy));
+    setError(null);
     return true;
   }
 
@@ -224,6 +259,7 @@ export function useSavedStrategies(userId: string | null = null) {
     loading,
     error,
     saveStrategy,
+    updateStrategy,
     deleteStrategy,
     renameStrategy,
     atLimit: strategies.length >= MAX_STRATEGIES,

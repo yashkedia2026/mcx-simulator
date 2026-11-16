@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { Plus, X } from 'lucide-react';
 import { LegRow } from './LegRow';
@@ -27,10 +27,35 @@ function makeDefaultLeg(price: number, instrument = DEFAULT_INSTRUMENT): OptionL
   };
 }
 
+type AutoSaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+function editableFingerprint(legs: OptionLeg[], underlyingPrice: number, riskFreeRate: number, followMarket: boolean) {
+  const hasLiveLeg = legs.some(leg => !!leg.marketContract);
+  return JSON.stringify({
+    // Live quote fields change continuously; do not rewrite a saved strategy
+    // every poll while still tracking user-edited model inputs.
+    underlyingPrice: followMarket && hasLiveLeg ? null : Number(underlyingPrice.toFixed(4)),
+    riskFreeRate,
+    legs: legs.map(leg => ({
+      id: leg.id,
+      positionType: leg.positionType,
+      optionType: leg.optionType,
+      strikePrice: leg.strikePrice,
+      premium: leg.premium,
+      lots: leg.lots,
+      iv: followMarket && leg.marketContract ? null : leg.iv,
+      daysToExpiry: followMarket && leg.marketContract ? null : leg.daysToExpiry,
+      instrument: leg.instrument,
+      marketContract: leg.marketContract ?? null,
+    })),
+  });
+}
+
 interface Props {
   legs: OptionLeg[];
   underlyingPrice: number;
   riskFreeRate: number;
+  followMarket: boolean;
   isDark: boolean;
   userId?: string | null;
   onStrategySaved?: () => void;
@@ -44,6 +69,7 @@ export function StrategyBuilder({
   legs,
   underlyingPrice,
   riskFreeRate,
+  followMarket,
   isDark,
   userId = null,
   onStrategySaved,
@@ -53,7 +79,46 @@ export function StrategyBuilder({
   onLoadSnapshot,
 }: Props) {
   const [selectedStrategy, setSelectedStrategy] = useState('');
-  const { strategies, loading: strategiesLoading, saveStrategy, deleteStrategy, atLimit, error: saveError } = useSavedStrategies(userId);
+  const [activeStrategyId, setActiveStrategyId] = useState<string | null>(null);
+  const [activeStrategyName, setActiveStrategyName] = useState('');
+  const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>('idle');
+  const lastAutoSavedFingerprint = useRef<string | null>(null);
+  const failedAutoSaveFingerprint = useRef<string | null>(null);
+  const { strategies, loading: strategiesLoading, saveStrategy, updateStrategy, deleteStrategy, atLimit, error: saveError } = useSavedStrategies(userId);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setActiveStrategyId(null);
+      setActiveStrategyName('');
+      setAutoSaveStatus('idle');
+      lastAutoSavedFingerprint.current = null;
+      failedAutoSaveFingerprint.current = null;
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [userId]);
+
+  const performAutoSave = useEffectEvent(async (id: string, fingerprint: string, nextLegs: OptionLeg[], nextPrice: number, nextRate: number) => {
+    setAutoSaveStatus('saving');
+    const accepted = await updateStrategy(id, nextPrice, nextLegs, nextRate);
+    if (accepted) {
+      lastAutoSavedFingerprint.current = fingerprint;
+      failedAutoSaveFingerprint.current = null;
+      setAutoSaveStatus('saved');
+    } else {
+      failedAutoSaveFingerprint.current = fingerprint;
+      setAutoSaveStatus('error');
+    }
+  });
+
+  useEffect(() => {
+    if (!activeStrategyId || !legs.length) return;
+    const fingerprint = editableFingerprint(legs, underlyingPrice, riskFreeRate, followMarket);
+    if (fingerprint === lastAutoSavedFingerprint.current || fingerprint === failedAutoSaveFingerprint.current) return;
+    const timer = window.setTimeout(() => {
+      void performAutoSave(activeStrategyId, fingerprint, legs, underlyingPrice, riskFreeRate);
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [activeStrategyId, followMarket, legs, underlyingPrice, riskFreeRate]);
 
   function addLeg() {
     onLegsChange(previous => [...previous, makeDefaultLeg(underlyingPrice, previous[0]?.instrument)]);
@@ -148,7 +213,15 @@ export function StrategyBuilder({
           {legs.length > 0 && (
             <button
               title="Clear strategy"
-              onClick={() => { setSelectedStrategy(''); onLegsChange([]); }}
+              onClick={() => {
+                setSelectedStrategy('');
+                setActiveStrategyId(null);
+                setActiveStrategyName('');
+                setAutoSaveStatus('idle');
+                lastAutoSavedFingerprint.current = null;
+                failedAutoSaveFingerprint.current = null;
+                onLegsChange([]);
+              }}
               className="shrink-0 p-1.5 rounded transition-colors hover:bg-red-500/10 hover:text-red-400"
               style={{ color: 'var(--th-muted)' }}
             >
@@ -195,19 +268,44 @@ export function StrategyBuilder({
           suggestedName={selectedStrategy}
           isDark={isDark}
           saveError={saveError}
+          activeStrategyName={activeStrategyName}
+          autoSaveStatus={autoSaveStatus}
           onSave={async (name) => {
-            const accepted = await saveStrategy(name, underlyingPrice, legs, riskFreeRate);
-            if (accepted) onStrategySaved?.();
-            return accepted;
+            const saved = await saveStrategy(name, underlyingPrice, legs, riskFreeRate);
+            if (!saved) return false;
+            setActiveStrategyId(saved.id);
+            setActiveStrategyName(saved.name);
+            lastAutoSavedFingerprint.current = editableFingerprint(legs, underlyingPrice, riskFreeRate, followMarket);
+            failedAutoSaveFingerprint.current = null;
+            setAutoSaveStatus('idle');
+            onStrategySaved?.();
+            return true;
           }}
           onLoad={(s) => {
+            const loadedLegs = s.legs.map(leg => ({ ...leg, id: newId() }));
+            const loadedRate = s.riskFreeRate ?? 6.5;
+            const loadedFollowLive = s.legs.some(leg => !!leg.marketContract);
             onUnderlyingChange(s.futuresPrice);
-            onLegsChange(s.legs.map(leg => ({ ...leg, id: newId() })));
-            onRateChange(s.riskFreeRate ?? 6.5);
+            onLegsChange(loadedLegs);
+            onRateChange(loadedRate);
+            setActiveStrategyId(s.id);
+            setActiveStrategyName(s.name);
+            lastAutoSavedFingerprint.current = editableFingerprint(loadedLegs, s.futuresPrice, loadedRate, loadedFollowLive);
+            failedAutoSaveFingerprint.current = null;
+            setAutoSaveStatus('idle');
             setSelectedStrategy('');
-            onLoadSnapshot(s.legs.some(leg => !!leg.marketContract));
+            onLoadSnapshot(loadedFollowLive);
           }}
-          onDelete={deleteStrategy}
+          onDelete={async (id) => {
+            const deleted = await deleteStrategy(id);
+            if (deleted && id === activeStrategyId) {
+              setActiveStrategyId(null);
+              setActiveStrategyName('');
+              setAutoSaveStatus('idle');
+              lastAutoSavedFingerprint.current = null;
+              failedAutoSaveFingerprint.current = null;
+            }
+          }}
         />
       </div>
 

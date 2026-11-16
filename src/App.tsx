@@ -189,6 +189,7 @@ export default function App() {
               legs={analysisLegs}
               underlyingPrice={analysisPrice}
               riskFreeRate={riskFreeRate}
+              followMarket={followMarket}
               isDark={isDark}
               userId={currentUserId}
               onStrategySaved={draft.clearDraft}

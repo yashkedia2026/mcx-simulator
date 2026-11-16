@@ -5,10 +5,14 @@ import type { SavedStrategy } from '@/hooks/useSavedStrategies';
 interface Props {
   strategies: SavedStrategy[];
   atLimit: boolean;
+  canSave: boolean;
+  loading: boolean;
   suggestedName: string;
   isDark: boolean;
   onSave: (name: string) => boolean | void | Promise<boolean | void>;
   saveError?: string | null;
+  activeStrategyName?: string;
+  autoSaveStatus?: 'idle' | 'saving' | 'saved' | 'error';
   onLoad: (strategy: SavedStrategy) => void;
   onDelete: (id: string) => void;
 }
@@ -22,7 +26,7 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-export function SaveLoadPanel({ strategies, atLimit, suggestedName, onSave, saveError, onLoad, onDelete }: Props) {
+export function SaveLoadPanel({ strategies, atLimit, canSave, loading, suggestedName, onSave, saveError, activeStrategyName, autoSaveStatus = 'idle', onLoad, onDelete }: Props) {
   const [name, setName] = useState(suggestedName);
   const [open, setOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -52,7 +56,7 @@ export function SaveLoadPanel({ strategies, atLimit, suggestedName, onSave, save
   };
 
   async function save() {
-    if (atLimit || saveLocked || savingRef.current || saving) return;
+    if (!canSave || atLimit || saveLocked || savingRef.current || saving) return;
     const nextName = (name || suggestedName).trim();
     savingRef.current = true;
     setSaving(true);
@@ -75,8 +79,8 @@ export function SaveLoadPanel({ strategies, atLimit, suggestedName, onSave, save
       <div className="flex flex-col sm:flex-row gap-2">
         <input
           type="text"
-          placeholder={atLimit ? 'Limit reached (20)' : 'Name this strategy…'}
-          disabled={atLimit}
+          placeholder={atLimit ? 'Limit reached (20)' : canSave ? 'Name this strategy…' : 'Add a position before saving'}
+          disabled={atLimit || !canSave}
           className="flex-1 rounded-md px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-colors"
           style={inputStyle}
           value={name}
@@ -84,7 +88,7 @@ export function SaveLoadPanel({ strategies, atLimit, suggestedName, onSave, save
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void save(); } }}
         />
         <button
-          disabled={atLimit || saveLocked || saving}
+          disabled={!canSave || atLimit || saveLocked || saving}
           onClick={() => { void save(); }}
           className="shrink-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold transition-colors disabled:opacity-40"
           style={{ background: '#2979ff', color: '#fff' }}
@@ -93,8 +97,20 @@ export function SaveLoadPanel({ strategies, atLimit, suggestedName, onSave, save
           {saving ? 'Saving…' : saveLocked ? 'Saved' : 'Save strategy'}
         </button>
       </div>
+      {activeStrategyName && <p className="text-[10px]" style={{ color: 'var(--th-muted)' }}>
+        Editing “{activeStrategyName}”. Changes to this loaded strategy are saved automatically; use Save strategy to create a separate copy.
+      </p>}
+      {loading && <p role="status" className="text-[11px]" style={{ color: 'var(--th-muted)' }}>Loading your saved strategies…</p>}
       {savedMessage && <p role="status" className="text-[11px] text-emerald-400">✓ {savedMessage} Opened below.</p>}
+      {activeStrategyName && autoSaveStatus !== 'idle' && <p role="status" className="text-[11px]" style={{ color: autoSaveStatus === 'error' ? 'var(--th-warning)' : autoSaveStatus === 'saved' ? 'var(--th-positive)' : 'var(--th-muted)' }}>
+        {autoSaveStatus === 'saving' ? `Saving changes to “${activeStrategyName}”…` : autoSaveStatus === 'saved' ? `✓ Changes auto-saved to “${activeStrategyName}”.` : `Could not auto-save “${activeStrategyName}”. Try again after reconnecting.`}
+      </p>}
       {saveError && <p role="alert" className="text-[11px] text-red-400">{saveError}</p>}
+      {!loading && !saveError && strategies.length === 0 && (
+        <p className="text-[11px]" style={{ color: 'var(--th-muted)' }}>
+          No saved strategies yet. Add a position, name it, and choose Save strategy.
+        </p>
+      )}
 
       {/* Saved list toggle */}
       {strategies.length > 0 && (

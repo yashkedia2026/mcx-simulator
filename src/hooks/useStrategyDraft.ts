@@ -14,6 +14,7 @@ interface Options {
   underlyingPrice: number;
   riskFreeRate: number;
   followMarket: boolean;
+  disabled?: boolean;
   onRestore: (draft: StrategyDraft) => void;
 }
 
@@ -64,7 +65,7 @@ function newestDraft(first: StrategyDraft | null, second: StrategyDraft | null) 
   return Date.parse(second.savedAt) > Date.parse(first.savedAt) ? second : first;
 }
 
-export function useStrategyDraft({ userId, legs, underlyingPrice, riskFreeRate, followMarket, onRestore }: Options) {
+export function useStrategyDraft({ userId, legs, underlyingPrice, riskFreeRate, followMarket, disabled = false, onRestore }: Options) {
   const key = storageKey(userId);
   const client = userId ? supabase : null;
   const initialDraft = useState<StrategyDraft | null>(() => readDraft(key))[0];
@@ -137,7 +138,7 @@ export function useStrategyDraft({ userId, legs, underlyingPrice, riskFreeRate, 
   }, [cloudHydrated, draftDecision, legs.length]);
 
   useEffect(() => {
-    if (resettingKey.current || !cloudHydrated || draftDecision !== 'ready') return;
+    if (disabled || resettingKey.current || !cloudHydrated || draftDecision !== 'ready') return;
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
 
     autosaveTimer.current = setTimeout(() => {
@@ -185,7 +186,7 @@ export function useStrategyDraft({ userId, legs, underlyingPrice, riskFreeRate, 
         autosaveTimer.current = null;
       }
     };
-  }, [client, cloudHydrated, draftDecision, followMarket, key, legs, underlyingPrice, riskFreeRate, userId]);
+  }, [client, cloudHydrated, disabled, draftDecision, followMarket, key, legs, underlyingPrice, riskFreeRate, userId]);
 
   function removeCurrentDraft() {
     if (autosaveTimer.current) {
@@ -193,6 +194,7 @@ export function useStrategyDraft({ userId, legs, underlyingPrice, riskFreeRate, 
       autosaveTimer.current = null;
     }
     removeDraft(key);
+    decisionMade.current = true;
     setPendingDraft(null);
     setDraftDecision('ready');
     setLastSavedAt(null);

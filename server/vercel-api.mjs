@@ -8,6 +8,9 @@ export function sendJson(res, status, body) {
 
 export function sendMarketError(res, error) {
   const safe = publicError(error);
+  // Keep Vercel logs useful without ever logging broker credentials, tokens,
+  // upstream response bodies, or request payloads.
+  console.warn('market data request failed', { code: safe.body.code, status: safe.status });
   sendJson(res, safe.status, safe.body);
 }
 

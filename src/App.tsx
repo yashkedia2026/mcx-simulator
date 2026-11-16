@@ -29,6 +29,7 @@ export default function App() {
   const [riskFreeRate, setRiskFreeRate] = useState(6.5);
   const [watchIds, setWatchIds] = useState<number[]>([]);
   const [followMarket, setFollowMarket] = useState(true);
+  const [namedStrategyActive, setNamedStrategyActive] = useState(false);
   const [lastModelUpdate, setLastModelUpdate] = useState<number | null>(null);
   const currentUserId = user?.id ?? null;
   const [activeUserId, setActiveUserId] = useState(currentUserId);
@@ -41,6 +42,7 @@ export default function App() {
       setRiskFreeRate(6.5);
       setWatchIds([]);
       setFollowMarket(true);
+      setNamedStrategyActive(false);
       setLastModelUpdate(null);
       setActiveUserId(nextUserId);
     }, 0);
@@ -52,7 +54,9 @@ export default function App() {
     underlyingPrice,
     riskFreeRate,
     followMarket,
+    disabled: namedStrategyActive,
     onRestore: (snapshot) => {
+      setNamedStrategyActive(false);
       setLegs(snapshot.legs.map(leg => ({ ...leg, id: crypto.randomUUID() })));
       setUnderlyingPrice(snapshot.underlyingPrice);
       setRiskFreeRate(snapshot.riskFreeRate);
@@ -189,13 +193,22 @@ export default function App() {
               legs={analysisLegs}
               underlyingPrice={analysisPrice}
               riskFreeRate={riskFreeRate}
+              followMarket={followMarket}
               isDark={isDark}
               userId={currentUserId}
               onStrategySaved={draft.clearDraft}
+              onNamedStrategyChange={active => {
+                setNamedStrategyActive(active);
+                if (active) draft.clearDraft();
+              }}
               onLegsChange={update => { setFollowMarket(false); setLegs(update); }}
               onUnderlyingChange={value => { setFollowMarket(false); setUnderlyingPrice(value); }}
               onRateChange={value => { setFollowMarket(false); setRiskFreeRate(value); }}
-              onLoadSnapshot={() => { setFollowMarket(false); setLastModelUpdate(null); }}
+              onLoadSnapshot={(followLive = false) => {
+                setFollowMarket(followLive);
+                setLastModelUpdate(null);
+                if (followLive) market.setEnabled(true);
+              }}
             />
           </div>
         </div>

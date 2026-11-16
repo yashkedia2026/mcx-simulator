@@ -195,7 +195,11 @@ export default function App() {
               onLegsChange={update => { setFollowMarket(false); setLegs(update); }}
               onUnderlyingChange={value => { setFollowMarket(false); setUnderlyingPrice(value); }}
               onRateChange={value => { setFollowMarket(false); setRiskFreeRate(value); }}
-              onLoadSnapshot={() => { setFollowMarket(false); setLastModelUpdate(null); }}
+              onLoadSnapshot={(followLive = false) => {
+                setFollowMarket(followLive);
+                setLastModelUpdate(null);
+                if (followLive) market.setEnabled(true);
+              }}
             />
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { ChevronDown, Radio, RefreshCw } from 'lucide-react';
 import type { OptionLeg, PositionType } from '@/types';
 import type { MarketContract, MarketQuote, MarketStatus } from '@/types/market';
@@ -128,6 +128,7 @@ export function MarketDataPanel(props: Props) {
   const [lotsText, setLotsText] = useState('1');
   const [entryDraft, setEntryDraft] = useState<{ optionId: number; text: string } | null>(null);
   const [addError, setAddError] = useState('');
+  const lastLinkedSelectionKey = useRef<string | undefined>(undefined);
   const available = contracts.filter(c => c.kind !== 'FUT' && isNonAgriculturalSymbol(c.symbol) && expiryTime(c.expiry) > now);
   const symbols = [...new Set(available.map(c => c.symbol))].sort();
   const symbol = symbols.includes(symbolChoice) ? symbolChoice : symbols[0] ?? '';
@@ -140,6 +141,31 @@ export function MarketDataPanel(props: Props) {
   const future = option && contracts.find(c => c.id === option.underlyingId && c.kind === 'FUT' && c.symbol === option.symbol);
   const optionId = option?.id;
   const futureId = future?.id;
+
+  // A loaded live strategy carries an exact broker contract identity. Sync the
+  // selector/card to it when the first linked leg changes, but do not reset the
+  // selector when the user adds a second leg to the same strategy.
+  const linkedLeg = legs.find(leg => leg.marketContract);
+  const linkedOptionId = linkedLeg?.marketContract?.instrumentId;
+  const linkedSelectionKey = linkedLeg && linkedOptionId !== undefined
+    ? `${linkedLeg.id}:${linkedOptionId}` : undefined;
+  const syncLinkedSelection = useEffectEvent((linked: MarketContract) => {
+    setSymbolChoice(linked.symbol);
+    setExpiryChoice(linked.expiry);
+    if (linked.kind === 'CE' || linked.kind === 'PE') setKind(linked.kind);
+    setOptionChoice(linked.id);
+  });
+  useEffect(() => {
+    if (linkedSelectionKey === undefined || linkedOptionId === undefined) {
+      lastLinkedSelectionKey.current = undefined;
+      return;
+    }
+    const linked = contracts.find(contract => contract.id === linkedOptionId);
+    if (!linked || lastLinkedSelectionKey.current === linkedSelectionKey) return;
+    lastLinkedSelectionKey.current = linkedSelectionKey;
+    syncLinkedSelection(linked);
+  }, [contracts, linkedOptionId, linkedSelectionKey]);
+
   useEffect(() => {
     onWatchIds([optionId, futureId].filter((id): id is number => id !== undefined));
   }, [optionId, futureId, onWatchIds]);
@@ -212,9 +238,9 @@ export function MarketDataPanel(props: Props) {
         <strong className="mt-1 block text-2xl font-bold tracking-tight tabular-nums">{money(isFreshQuote(futureQuote, now) ? quoteMark(futureQuote) : null)}</strong>
         <span className="text-[10px]" style={{ color: 'var(--th-muted)' }}>{future.symbol} future · {dateLabel(future.expiry)}</span>
         <div className="mt-2 grid grid-cols-3 gap-2 border-t pt-2 text-center text-xs" style={{ borderColor: 'var(--th-border2)' }}>
-          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Bid</span><strong className="mt-0.5 block text-sm font-semibold tabular-nums">{money(quote?.bid)}</strong></div>
-          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Ask</span><strong className="mt-0.5 block text-sm font-semibold tabular-nums">{money(quote?.ask)}</strong></div>
-          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Last trade</span><strong className="mt-0.5 block text-sm font-semibold tabular-nums">{money(quote?.lastPrice)}</strong></div>
+          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Bid</span><strong className="mt-0.5 block text-sm font-semibold tabular-nums">{money(futureQuote?.bid)}</strong></div>
+          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Ask</span><strong className="mt-0.5 block text-sm font-semibold tabular-nums">{money(futureQuote?.ask)}</strong></div>
+          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Last trade</span><strong className="mt-0.5 block text-sm font-semibold tabular-nums">{money(futureQuote?.lastPrice)}</strong></div>
         </div>
       </div> : <p className="text-xs" style={{ color: 'var(--th-warning)' }}>The matching underlying future is unavailable in the contract master. This option cannot be linked safely.</p>}
     </>}

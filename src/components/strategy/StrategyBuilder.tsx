@@ -37,7 +37,7 @@ interface Props {
   onLegsChange: Dispatch<SetStateAction<OptionLeg[]>>;
   onUnderlyingChange: (price: number) => void;
   onRateChange: (rate: number) => void;
-  onLoadSnapshot: () => void;
+  onLoadSnapshot: (followLive?: boolean) => void;
 }
 
 export function StrategyBuilder({
@@ -205,7 +205,7 @@ export function StrategyBuilder({
             onLegsChange(s.legs.map(leg => ({ ...leg, id: newId() })));
             onRateChange(s.riskFreeRate ?? 6.5);
             setSelectedStrategy('');
-            onLoadSnapshot();
+            onLoadSnapshot(s.legs.some(leg => !!leg.marketContract));
           }}
           onDelete={deleteStrategy}
         />

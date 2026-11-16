@@ -84,7 +84,11 @@ export function marketPnL(legs: OptionLeg[], quotes: Record<number, MarketQuote>
   for (const leg of legs) {
     const quote = leg.marketContract && quotes[leg.marketContract.instrumentId];
     if (!isFreshQuote(quote, now) || quote.instrumentId !== leg.marketContract?.instrumentId) return null;
-    const mark = quoteMark(quote);
+    // Market P&L follows the exchange's last traded price (LTP). Do not use
+    // the bid/ask midpoint here: it can represent an executable estimate, but
+    // it is not the price at which the latest trade occurred.
+    const mark = quote.lastPrice != null && Number.isFinite(quote.lastPrice) && quote.lastPrice > 0
+      ? quote.lastPrice : null;
     if (mark === null) return null;
     total += (mark - leg.premium) * (leg.positionType === 'BUY' ? 1 : -1) * leg.lots * leg.instrument.lotSize;
   }

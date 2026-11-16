@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { ChevronDown, Radio, RefreshCw } from 'lucide-react';
 import type { OptionLeg, PositionType } from '@/types';
 import type { MarketContract, MarketQuote, MarketStatus } from '@/types/market';
-import { createMarketLeg, expiryTime, isFreshQuote, marketPnL, matchesMarketContract, quoteMark } from '@/lib/marketData';
+import { createMarketLeg, expiryTime, isFreshQuote, quoteMark } from '@/lib/marketData';
 import { isNonAgriculturalSymbol } from '@/lib/commodities';
 
 interface Props {
@@ -185,9 +185,6 @@ export function MarketDataPanel(props: Props) {
   const ready = enabled && !error && isFreshQuote(quote, now) && isFreshQuote(futureQuote, now);
   const compatible = !legs.length || legs.every(leg => leg.marketContract &&
     leg.marketContract.underlyingInstrumentId === future?.id && option && expiryTime(leg.marketContract.expiry) === expiryTime(option.expiry));
-  const validLegs = legs.every(leg => matchesMarketContract(leg, contracts.find(c => c.id === leg.marketContract?.instrumentId)));
-  const pnl = enabled && !error && validLegs ? marketPnL(legs, quotes, now) : null;
-  const hasLinkedLegs = legs.some(leg => leg.marketContract);
   const selectStyle = { background: 'var(--th-input)', border: '1px solid var(--th-border2)', color: 'var(--th-text)' };
   const selectClass = 'w-full rounded-md px-2 py-2 text-xs min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors';
   let connectionLabel = 'Not connected';
@@ -317,11 +314,5 @@ export function MarketDataPanel(props: Props) {
       {addError && <p role="alert" className="text-xs" style={{ color: 'var(--th-warning)' }}>{addError}</p>}
       <p className="text-[10px] leading-relaxed" style={{ color: 'var(--th-muted)' }}>Entry premiums are snapshots. Quote updates never change your saved entry prices.</p>
     </>}
-    {hasLinkedLegs && <div className="border-t pt-2" style={{ borderColor: 'var(--th-border)' }}>
-      {contracts.length > 0 && !validLegs && <p className="text-xs mb-2" style={{ color: 'var(--th-warning)' }}>A saved contract no longer matches the current contract master. Rebuild those legs from the selector to resume live analysis.</p>}
-      <div className="flex justify-between text-xs gap-2"><span>Market P&amp;L estimate</span>
-        <strong style={{ color: pnl == null ? 'var(--th-muted)' : pnl >= 0 ? 'var(--th-positive)' : 'var(--th-negative)' }}>{money(pnl)}</strong></div>
-      <p className="text-[10px] mt-1" style={{ color: 'var(--th-muted)' }}>Midpoint, or last trade if a two-sided quote is unavailable. Excludes fees and slippage. {pnl === null && 'Waiting for all leg quotes.'}</p>
-    </div>}
   </section>;
 }

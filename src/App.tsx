@@ -15,10 +15,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { useStrategyDraft } from '@/hooks/useStrategyDraft';
 import { useMarketData } from '@/hooks/useMarketData';
 import { MarketDataPanel } from '@/components/market/MarketDataPanel';
-import { expiryTime, matchesMarketContract, refreshMarketModel } from '@/lib/marketData';
+import { expiryTime, marketPnL, matchesMarketContract, refreshMarketModel } from '@/lib/marketData';
 import type { OptionLeg } from '@/types';
 import { buildStrategyLegs } from '@/lib/strategies';
 import { ArrowRight, BarChart3, MousePointerClick, Radio, Sparkles } from 'lucide-react';
+
+const money = (value: number | null | undefined) => value == null ? '—' :
+  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(value);
 
 export default function App() {
   const { isDark, toggleTheme } = useTheme();
@@ -96,6 +99,14 @@ export default function App() {
 
   const instrumentName = legs[0]?.instrument.name ?? 'MCX';
   const hasStrategy = legs.length > 0;
+  const hasLinkedLegs = analysisLegs.some(leg => !!leg.marketContract);
+  const validMarketLegs = analysisLegs.every(leg => matchesMarketContract(
+    leg, market.contracts.find(contract => contract.id === leg.marketContract?.instrumentId),
+  ));
+  const liveMarketPnl = useMemo(() => {
+    if (!market.enabled || !!market.error || !validMarketLegs) return null;
+    return marketPnL(analysisLegs, market.quotes, market.now);
+  }, [analysisLegs, market.enabled, market.error, market.now, market.quotes, validMarketLegs]);
 
   function jumpTo(id: string) {
     const target = document.getElementById(id);
@@ -287,6 +298,40 @@ export default function App() {
                 isDark={isDark}
               />
             </div>
+
+            {hasLinkedLegs && <section className="flex flex-col gap-2.5" aria-label="Market P&L estimate">
+              <div
+                className="rounded-xl border px-4 py-3 transition-colors duration-300"
+                style={{ borderColor: 'var(--th-border)', background: 'var(--th-card)' }}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--th-muted)' }}>
+                      Market P&amp;L estimate
+                    </p>
+                    <p className="mt-1 text-[11px]" style={{ color: 'var(--th-muted)' }}>
+                      Based on each leg&apos;s last traded price (LTP). Excludes fees and slippage.
+                    </p>
+                  </div>
+                  <strong
+                    className="shrink-0 text-lg tabular-nums"
+                    style={{ color: liveMarketPnl == null ? 'var(--th-muted)' : liveMarketPnl >= 0 ? 'var(--th-positive)' : 'var(--th-negative)' }}
+                  >
+                    {money(liveMarketPnl)}
+                  </strong>
+                </div>
+                {market.contracts.length > 0 && !validMarketLegs && (
+                  <p className="mt-2 text-xs" style={{ color: 'var(--th-warning)' }}>
+                    A saved contract no longer matches the current contract master. Rebuild those legs from the selector to resume live analysis.
+                  </p>
+                )}
+                {liveMarketPnl === null && validMarketLegs && (
+                  <p className="mt-2 text-[10px]" style={{ color: 'var(--th-muted)' }}>
+                    Waiting for fresh quotes for every leg.
+                  </p>
+                )}
+              </div>
+            </section>}
 
             {/* P&L Table */}
             <PnLTable

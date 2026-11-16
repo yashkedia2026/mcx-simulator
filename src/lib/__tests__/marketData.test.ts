@@ -136,7 +136,7 @@ describe('contract selection and entry snapshots', () => {
     expect(converted.instrument.lotSize).toBe(50);
     expect(converted.marketContract?.brokerLotSize).toBe(500);
     expect(converted.marketContract?.priceMultiplier).toBe(0.1);
-    expect(marketPnL([converted], { 101: quote(101, { bid: 11, ask: 13 }) }, NOW)).toBe(50);
+    expect(marketPnL([converted], { 101: quote(101, { bid: 11, ask: 13, lastPrice: 12 }) }, NOW)).toBe(50);
   });
 
   it('preserves the requested live order lot quantity', () => {
@@ -189,14 +189,25 @@ describe('complete market P&L without changing entries', () => {
     const put = { ...option, id: 102, kind: 'PE' as const, name: 'Gold Dec 100 PE' };
     const sell = createMarketLeg(put, future, quote(102, { bid: 8, ask: 10 }), futureQuote, 'SELL', 6.5, NOW);
     const entriesBefore = structuredClone([buy, sell]);
-    const marks = { 101: quote(101, { bid: 12, ask: 14 }), 102: quote(102, { bid: 5, ask: 7 }) };
+    const marks = {
+      101: quote(101, { bid: 12, ask: 14, lastPrice: 13 }),
+      102: quote(102, { bid: 5, ask: 7, lastPrice: 6 }),
+    };
     // Buy: (13-11)*2*100 = 400. Sell: (8-6)*1*100 = 200.
     expect(marketPnL([buy, sell], marks, NOW)).toBe(600);
     expect([buy, sell]).toEqual(entriesBefore);
-    marks[101].bid = 20;
-    marks[101].ask = 22;
+    // Deliberately make the midpoint differ from LTP; P&L must follow LTP.
+    marks[101].bid = 30;
+    marks[101].ask = 32;
+    marks[101].lastPrice = 21;
     expect(marketPnL([buy, sell], marks, NOW)).toBe(2200);
     expect([buy, sell]).toEqual(entriesBefore);
+  });
+
+  it('does not fall back to the bid/ask midpoint when LTP is unavailable', () => {
+    expect(marketPnL([newLeg()], {
+      101: quote(101, { bid: 12, ask: 14, lastPrice: null }),
+    }, NOW)).toBeNull();
   });
 
   it('does not report a partial total when any leg is missing, stale, or unpriceable', () => {

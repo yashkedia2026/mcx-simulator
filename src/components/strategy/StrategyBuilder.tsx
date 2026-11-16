@@ -59,6 +59,7 @@ interface Props {
   isDark: boolean;
   userId?: string | null;
   onStrategySaved?: () => void;
+  onNamedStrategyChange?: (active: boolean) => void;
   onLegsChange: Dispatch<SetStateAction<OptionLeg[]>>;
   onUnderlyingChange: (price: number) => void;
   onRateChange: (rate: number) => void;
@@ -73,6 +74,7 @@ export function StrategyBuilder({
   isDark,
   userId = null,
   onStrategySaved,
+  onNamedStrategyChange,
   onLegsChange,
   onUnderlyingChange,
   onRateChange,
@@ -220,6 +222,7 @@ export function StrategyBuilder({
                 setAutoSaveStatus('idle');
                 lastAutoSavedFingerprint.current = null;
                 failedAutoSaveFingerprint.current = null;
+                onNamedStrategyChange?.(false);
                 onLegsChange([]);
               }}
               className="shrink-0 p-1.5 rounded transition-colors hover:bg-red-500/10 hover:text-red-400"
@@ -279,6 +282,7 @@ export function StrategyBuilder({
             failedAutoSaveFingerprint.current = null;
             setAutoSaveStatus('idle');
             onStrategySaved?.();
+            onNamedStrategyChange?.(true);
             return true;
           }}
           onLoad={(s) => {
@@ -294,6 +298,7 @@ export function StrategyBuilder({
             failedAutoSaveFingerprint.current = null;
             setAutoSaveStatus('idle');
             setSelectedStrategy('');
+            onNamedStrategyChange?.(true);
             onLoadSnapshot(loadedFollowLive);
           }}
           onDelete={async (id) => {
@@ -304,6 +309,7 @@ export function StrategyBuilder({
               setAutoSaveStatus('idle');
               lastAutoSavedFingerprint.current = null;
               failedAutoSaveFingerprint.current = null;
+              onNamedStrategyChange?.(false);
             }
           }}
         />

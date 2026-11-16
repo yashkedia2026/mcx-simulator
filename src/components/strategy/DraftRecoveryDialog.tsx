@@ -39,6 +39,9 @@ export function DraftRecoveryDialog({ draft, onRestore, onDiscard }: Props) {
             <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--th-muted)' }}>
               We found a draft with {draft.legs.length} {draft.legs.length === 1 ? 'leg' : 'legs'} saved on {savedAt}.
             </p>
+            <p className="mt-2 text-[11px] leading-relaxed" style={{ color: 'var(--th-muted)' }}>
+              This is a recovery copy, separate from your named saved strategies. Discarding it will not delete a saved strategy.
+            </p>
           </div>
         </div>
 

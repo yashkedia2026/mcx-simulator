@@ -72,7 +72,6 @@ export function useMarketData(instrumentIds: number[], onQuotesReceived?: (quote
     if (options.active === false || !enabled || !idsKey) return;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
-    let consecutiveFailures = 0;
     const poll = async () => {
       try {
         const ids = idsKey.split(',').map(Number);
@@ -81,7 +80,6 @@ export function useMarketData(instrumentIds: number[], onQuotesReceived?: (quote
         const responses = await Promise.all(batches.map(batch => request<{ quotes: MarketQuote[] }>('quotes', controller.signal,
           { instrumentIds: batch }, options.accessToken)));
         if (controller.signal.aborted) return;
-        consecutiveFailures = 0;
         const quotes = responses.flatMap(response => response.quotes);
         const received = Object.fromEntries(quotes.map(q => [q.instrumentId, q]));
         acceptQuotes(received, Date.now());
@@ -95,22 +93,11 @@ export function useMarketData(instrumentIds: number[], onQuotesReceived?: (quote
         setNow(Date.now());
       } catch (err) {
         if (!controller.signal.aborted) {
-          consecutiveFailures += 1;
-          // A single serverless/upstream blip should not flash a blocking
-          // outage banner over otherwise usable cached data. Back off the next
-          // request as failures continue so Eureka is not hammered every 5s.
-          if (consecutiveFailures >= 2) {
-            setError(err instanceof Error ? err.message : 'Quote refresh failed.');
-            setStatus(previous => previous ? { ...previous, connected: false } : previous);
-          }
+          setError(err instanceof Error ? err.message : 'Quote refresh failed.');
+          setStatus(previous => previous ? { ...previous, connected: false } : previous);
         }
       } finally {
-        if (!controller.signal.aborted) {
-          const delay = consecutiveFailures === 0
-            ? 5000
-            : Math.min(5000 * (2 ** Math.min(consecutiveFailures - 1, 3)), 30_000);
-          timer = setTimeout(poll, delay);
-        }
+        if (!controller.signal.aborted) timer = setTimeout(poll, 5000);
       }
     };
     void poll();

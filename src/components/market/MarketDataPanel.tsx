@@ -173,6 +173,8 @@ export function MarketDataPanel(props: Props) {
   const quote = option && quotes[option.id];
   const futureQuote = future && quotes[future.id];
   const liveLtp = isFreshQuote(quote, now) && quote?.lastPrice != null ? quote.lastPrice : quoteMark(quote);
+  const optionSpread = quote?.bid != null && quote?.ask != null && Number.isFinite(quote.bid) && Number.isFinite(quote.ask) && quote.ask >= quote.bid
+    ? quote.ask - quote.bid : null;
   const entryText = option && entryDraft?.optionId === option.id
     ? entryDraft.text
     : liveLtp == null ? '' : String(liveLtp);
@@ -243,6 +245,22 @@ export function MarketDataPanel(props: Props) {
           <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Last trade</span><strong className="mt-0.5 block text-sm font-semibold tabular-nums">{money(futureQuote?.lastPrice)}</strong></div>
         </div>
       </div> : <p className="text-xs" style={{ color: 'var(--th-warning)' }}>The matching underlying future is unavailable in the contract master. This option cannot be linked safely.</p>}
+      {option && <div className="rounded-lg border px-3 py-2.5" style={{ borderColor: 'var(--th-border2)', background: 'var(--th-input)' }}>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--th-muted)' }}>Selected option</span>
+          <span className="text-[10px] font-semibold" style={{ color: isFreshQuote(quote, now) ? 'var(--th-positive)' : 'var(--th-muted)' }}>{isFreshQuote(quote, now) ? 'LIVE' : 'Waiting'}</span>
+        </div>
+        <strong className="mt-1 block text-xl font-bold tracking-tight tabular-nums">{money(isFreshQuote(quote, now) ? quoteMark(quote) : null)}</strong>
+        <span className="text-[10px]" style={{ color: 'var(--th-muted)' }}>
+          {option.symbol} {option.strike?.toLocaleString('en-IN')} {option.kind} · {dateLabel(option.expiry)}
+        </span>
+        <div className="mt-2 grid grid-cols-4 gap-1 border-t pt-2 text-center text-xs" style={{ borderColor: 'var(--th-border2)' }}>
+          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Bid</span><strong className="mt-0.5 block text-xs font-semibold tabular-nums">{money(quote?.bid)}</strong></div>
+          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Ask</span><strong className="mt-0.5 block text-xs font-semibold tabular-nums">{money(quote?.ask)}</strong></div>
+          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Last</span><strong className="mt-0.5 block text-xs font-semibold tabular-nums">{money(quote?.lastPrice)}</strong></div>
+          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Spread</span><strong className="mt-0.5 block text-xs font-semibold tabular-nums">{money(optionSpread)}</strong></div>
+        </div>
+      </div>}
     </>}
     {symbols.length > 0 && <>
       <div className="grid grid-cols-2 gap-2">

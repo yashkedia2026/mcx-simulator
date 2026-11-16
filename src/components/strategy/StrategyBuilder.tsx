@@ -53,7 +53,7 @@ export function StrategyBuilder({
   onLoadSnapshot,
 }: Props) {
   const [selectedStrategy, setSelectedStrategy] = useState('');
-  const { strategies, saveStrategy, deleteStrategy, atLimit, error: saveError } = useSavedStrategies(userId);
+  const { strategies, loading: strategiesLoading, saveStrategy, deleteStrategy, atLimit, error: saveError } = useSavedStrategies(userId);
 
   function addLeg() {
     onLegsChange(previous => [...previous, makeDefaultLeg(underlyingPrice, previous[0]?.instrument)]);
@@ -139,7 +139,7 @@ export function StrategyBuilder({
               chooseStrategy(name);
             }}
           >
-            <option value="">— Select a strategy to load —</option>
+            <option value="">— Select a starting template —</option>
             {PREBUILT_STRATEGIES.map((s) => (
               <option key={s.name} value={s.name}>{s.name}</option>
             ))}
@@ -177,6 +177,38 @@ export function StrategyBuilder({
             })}
           </div>
         </div>
+      </div>
+
+      {/* ── Saved strategies ── */}
+      <div className="px-4 pb-4 border-b pt-4" style={{ borderBottomColor: 'var(--th-divider)' }}>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--th-muted)' }}>
+            Saved strategies
+          </p>
+          <span className="text-[10px]" style={{ color: 'var(--th-muted)' }}>{strategies.length}/20</span>
+        </div>
+        <SaveLoadPanel
+          strategies={strategies}
+          atLimit={atLimit}
+          canSave={legs.length > 0}
+          loading={strategiesLoading}
+          suggestedName={selectedStrategy}
+          isDark={isDark}
+          saveError={saveError}
+          onSave={async (name) => {
+            const accepted = await saveStrategy(name, underlyingPrice, legs, riskFreeRate);
+            if (accepted) onStrategySaved?.();
+            return accepted;
+          }}
+          onLoad={(s) => {
+            onUnderlyingChange(s.futuresPrice);
+            onLegsChange(s.legs.map(leg => ({ ...leg, id: newId() })));
+            onRateChange(s.riskFreeRate ?? 6.5);
+            setSelectedStrategy('');
+            onLoadSnapshot();
+          }}
+          onDelete={deleteStrategy}
+        />
       </div>
 
       {/* ── Legs ── */}
@@ -218,36 +250,6 @@ export function StrategyBuilder({
           Add position
         </button>
       </div>
-
-      {/* ── Save / Load ── */}
-      {legs.length > 0 && <div className="px-4 pb-4 border-t pt-4" style={{ borderTopColor: 'var(--th-divider)' }}>
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--th-muted)' }}>
-            Save / load strategy
-          </p>
-          <span className="text-[10px]" style={{ color: 'var(--th-muted)' }}>Optional</span>
-        </div>
-        <SaveLoadPanel
-          strategies={strategies}
-          atLimit={atLimit}
-          suggestedName={selectedStrategy}
-          isDark={isDark}
-          saveError={saveError}
-          onSave={async (name) => {
-            const accepted = await saveStrategy(name, underlyingPrice, legs, riskFreeRate);
-            if (accepted) onStrategySaved?.();
-            return accepted;
-          }}
-          onLoad={(s) => {
-            onUnderlyingChange(s.futuresPrice);
-            onLegsChange(s.legs.map(leg => ({ ...leg, id: newId() })));
-            onRateChange(s.riskFreeRate ?? 6.5);
-            setSelectedStrategy('');
-            onLoadSnapshot();
-          }}
-          onDelete={deleteStrategy}
-        />
-        </div>}
 
     </div>
   );

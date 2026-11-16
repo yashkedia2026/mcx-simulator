@@ -54,12 +54,22 @@ function MarketComboBox({ id, value, options, ariaLabel, className, style, onCha
     if (!focused.current) setText(selectedLabel);
   }, [selectedLabel]);
 
-  function commit(nextText: string) {
-    const match = options.find(option => option.label.toLocaleLowerCase() === nextText.trim().toLocaleLowerCase());
+  function normalizeOptionText(nextText: string) {
+    // Strike labels are formatted as “8,600”, while keyboard users naturally
+    // type “8600”. Removing separators also makes date labels forgiving.
+    return nextText.trim().toLocaleLowerCase().replace(/[\s,]/g, '');
+  }
+
+  function commit(nextText: string): MarketOption | undefined {
+    const normalized = normalizeOptionText(nextText);
+    const match = options.find(option =>
+      normalizeOptionText(option.label) === normalized || normalizeOptionText(option.value) === normalized,
+    );
     if (match) {
       onChange(match.value);
       setText(match.label);
     }
+    return match;
   }
 
   return (
@@ -95,9 +105,9 @@ function MarketComboBox({ id, value, options, ariaLabel, className, style, onCha
           }
         }}
         onBlur={() => {
-          commit(text);
+          const match = commit(text);
           focused.current = false;
-          setText(options.find(option => option.value === value)?.label ?? '');
+          setText(match?.label ?? options.find(option => option.value === value)?.label ?? '');
         }}
       />
       <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: 'var(--th-muted)' }} />
@@ -115,8 +125,8 @@ export function MarketDataPanel(props: Props) {
   const [expiryChoice, setExpiryChoice] = useState('');
   const [kind, setKind] = useState<'CE' | 'PE'>('CE');
   const [optionChoice, setOptionChoice] = useState(0);
-  const [lots, setLots] = useState(1);
-  const [customEntryPrice, setCustomEntryPrice] = useState<{ optionId: number; value: number } | null>(null);
+  const [lotsText, setLotsText] = useState('1');
+  const [entryDraft, setEntryDraft] = useState<{ optionId: number; text: string } | null>(null);
   const [addError, setAddError] = useState('');
   const available = contracts.filter(c => c.kind !== 'FUT' && isNonAgriculturalSymbol(c.symbol) && expiryTime(c.expiry) > now);
   const symbols = [...new Set(available.map(c => c.symbol))].sort();
@@ -137,7 +147,13 @@ export function MarketDataPanel(props: Props) {
   const quote = option && quotes[option.id];
   const futureQuote = future && quotes[future.id];
   const liveLtp = isFreshQuote(quote, now) && quote?.lastPrice != null ? quote.lastPrice : quoteMark(quote);
-  const entryPrice = option && customEntryPrice?.optionId === option.id ? customEntryPrice.value : liveLtp;
+  const entryText = option && entryDraft?.optionId === option.id
+    ? entryDraft.text
+    : liveLtp == null ? '' : String(liveLtp);
+  const entryPrice = option && entryDraft?.optionId === option.id
+    ? Number(entryDraft.text)
+    : liveLtp;
+  const lots = Number(lotsText);
   const ready = enabled && !error && isFreshQuote(quote, now) && isFreshQuote(futureQuote, now);
   const compatible = !legs.length || legs.every(leg => leg.marketContract &&
     leg.marketContract.underlyingInstrumentId === future?.id && option && expiryTime(leg.marketContract.expiry) === expiryTime(option.expiry));
@@ -154,8 +170,10 @@ export function MarketDataPanel(props: Props) {
     setAddError('');
     try {
       if (legs.length >= 20) throw new Error('A strategy can contain up to 20 legs.');
+      if (!Number.isInteger(lots) || lots < 1 || lots > 1000) throw new Error('Lots must be a whole number between 1 and 1,000.');
+      if (typeof entryPrice !== 'number' || !Number.isFinite(entryPrice) || entryPrice <= 0) throw new Error('Enter a valid entry price before adding this position.');
       if (!option || !future || !quote || !futureQuote || !compatible) throw new Error('Select a compatible quoted contract.');
-      const leg = createMarketLeg(option, future, quote, futureQuote, position, riskFreeRate, undefined, lots, entryPrice ?? undefined);
+      const leg = createMarketLeg(option, future, quote, futureQuote, position, riskFreeRate, undefined, lots, Number(entryPrice));
       onAddLeg(leg, quoteMark(futureQuote)!);
     } catch (err) { setAddError(err instanceof Error ? err.message : 'Could not add this contract.'); }
   }
@@ -224,14 +242,17 @@ export function MarketDataPanel(props: Props) {
         </label>
       </div>
       <label className="block text-[11px]">Lots to add
-        <input type="number" min={1} max={1000} step={1} value={lots} inputMode="numeric" aria-label="Lots to add" className="mt-1 w-full rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50" style={selectStyle}
+        <input type="number" min={1} max={1000} step={1} value={lotsText} inputMode="numeric" aria-label="Lots to add" className="mt-1 w-full rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50" style={selectStyle}
           onFocus={event => event.currentTarget.select()}
-          onChange={event => { const value = event.target.valueAsNumber; if (Number.isInteger(value) && value >= 1 && value <= 1000) setLots(value); }} />
+          onChange={event => setLotsText(event.target.value)} />
       </label>
       <label className="block text-[11px]">Entry price / LTP <span style={{ color: 'var(--th-muted)' }}>(editable)</span>
-        <input type="number" min={0.01} step="any" value={entryPrice ?? ''} inputMode="decimal" aria-label="Entry price or LTP" className="mt-1 w-full rounded-md px-2 py-2 text-sm font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500/50" style={selectStyle}
-          onFocus={event => event.currentTarget.select()}
-          onChange={event => { const value = event.target.valueAsNumber; if (option && Number.isFinite(value) && value > 0) setCustomEntryPrice({ optionId: option.id, value }); }} />
+        <input type="number" min={0.01} step="any" value={entryText} inputMode="decimal" aria-label="Entry price or LTP" className="mt-1 w-full rounded-md px-2 py-2 text-sm font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500/50" style={selectStyle}
+          onFocus={event => {
+            event.currentTarget.select();
+            if (option) setEntryDraft({ optionId: option.id, text: event.currentTarget.value });
+          }}
+          onChange={event => { if (option) setEntryDraft({ optionId: option.id, text: event.target.value }); }} />
         <span className="mt-1 block text-[10px]" style={{ color: 'var(--th-muted)' }}>Defaults to the live LTP. Change it to replay your original fill price.</span>
       </label>
       {quote && <p className="text-[10px]" style={{ color: 'var(--th-muted)' }}>

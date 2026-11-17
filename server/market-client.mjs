@@ -42,6 +42,12 @@ function configuredBaseUrl(value) {
   } catch { throw new MarketDataError('INVALID_CONFIG', 503); }
 }
 
+// Inspect only to classify, never return upstream descriptions or auth data.
+function isSessionError(payload) {
+  return Boolean(payload) && typeof payload === 'object' &&
+    /token|session|unauthori[sz]ed|authenticat/i.test(`${payload.code ?? ''} ${payload.description ?? ''}`);
+}
+
 /** Read-only, server-owned Eureka adapter. All mutable state stays in memory. */
 export function createMarketClient({
   appKey = '', secretKey = '', baseUrl = DEFAULT_BASE_URL,
@@ -91,14 +97,21 @@ export function createMarketClient({
       // Eureka also rejects login requests with HTTP 400. This is an auth
       // rejection, not an outage; the response body can contain sensitive data.
       if (path === '/auth/login' && response.status === 400) throw new MarketDataError('AUTH_FAILED', 502);
-      if (!response.ok) throw new MarketDataError('UPSTREAM_UNAVAILABLE');
+      if (!response.ok) {
+        // Eureka reports an expired or replaced session as HTTP 400 with an
+        // "Invalid Token" body, not 401. It allows one session per app key, so a
+        // login from any other server instance invalidates this one's token.
+        // Classify it as auth so the caller logs in again instead of failing
+        // every request until the instance is recycled.
+        let failure = null;
+        try { failure = await response.json(); } catch { /* not JSON: an outage */ }
+        throw new MarketDataError(isSessionError(failure) ? 'AUTH_FAILED' : 'UPSTREAM_UNAVAILABLE');
+      }
       let payload;
       try { payload = await response.json(); } catch { throw new MarketDataError('INVALID_RESPONSE'); }
       if (!payload || typeof payload !== 'object') throw new MarketDataError('INVALID_RESPONSE');
       if (payload.type !== 'success') {
-        // Inspect only to classify, never return upstream descriptions or auth data.
-        const authError = path === '/auth/login' || /token|session|unauthori[sz]ed|authenticat/i.test(`${payload.code ?? ''} ${payload.description ?? ''}`);
-        throw new MarketDataError(authError ? 'AUTH_FAILED' : 'UPSTREAM_UNAVAILABLE');
+        throw new MarketDataError(path === '/auth/login' || isSessionError(payload) ? 'AUTH_FAILED' : 'UPSTREAM_UNAVAILABLE');
       }
       return payload.result;
     } catch (error) {

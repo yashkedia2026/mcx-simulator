@@ -80,6 +80,40 @@ test('refreshes expired auth once without exposing tokens or upstream errors', a
   assert.equal(JSON.stringify(client.getStatus()).includes('private-token'), false);
 });
 
+test('logs in again when the broker rejects a replaced session with HTTP 400 Invalid Token', async () => {
+  let logins = 0;
+  const tokens = [];
+  const invalidToken = () => new Response(JSON.stringify({ type: 'error', code: 'e-session-0007', description: 'Invalid Token' }), { status: 400 });
+  const { client, advance } = mockClient({ fetchImpl: async (url, options) => {
+    if (url.endsWith('/login')) { logins++; return success({ token: `private-token-${logins}` }); }
+    if (url.endsWith('/master')) return success(masterFixture);
+    tokens.push(options.headers.Authorization);
+    // Another server instance logged in after the first quote, replacing the session.
+    if (tokens.length > 1 && options.headers.Authorization === 'private-token-1') return invalidToken();
+    return success({ listQuotes: JSON.parse(options.body).instruments.map((item) => quoteFixture(item.exchangeInstrumentID)) });
+  } });
+  assert.equal((await client.getQuotes([201])).quotes.length, 1);
+  advance(5000);
+  assert.equal((await client.getQuotes([201])).quotes.length, 1);
+  assert.equal(logins, 2);
+  assert.deepEqual(tokens, ['private-token-1', 'private-token-1', 'private-token-2']);
+  advance(5000);
+  assert.equal((await client.getQuotes([201])).quotes.length, 1);
+  assert.equal(logins, 2);
+  assert.deepEqual(client.getStatus(), { configured: true, connected: true, error: null, code: null });
+});
+
+test('an HTTP 400 that is not about the session stays an outage and does not trigger a login', async () => {
+  let logins = 0;
+  const { client } = mockClient({ fetchImpl: async (url) => {
+    if (url.endsWith('/login')) { logins++; return success({ token: 'private-token' }); }
+    if (url.endsWith('/master')) return success(masterFixture);
+    return new Response(JSON.stringify({ type: 'error', code: 'e-instrument-0001', description: 'Bad Request' }), { status: 400 });
+  } });
+  await assert.rejects(client.getQuotes([201]), (error) => error.code === 'UPSTREAM_UNAVAILABLE' && error.status === 502);
+  assert.equal(logins, 1);
+});
+
 test('stops after one auth retry and redacts all broker descriptions', async () => {
   let logins = 0;
   const { client } = mockClient({ fetchImpl: async (url) => {

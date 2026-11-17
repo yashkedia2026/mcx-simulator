@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { LegRow } from './LegRow';
 import { SaveLoadPanel } from './SaveLoadPanel';
 import { MCX_INSTRUMENTS, DEFAULT_INSTRUMENT, getStrikeGap, roundToStrike } from '@/data/instruments';
@@ -213,7 +213,8 @@ export function StrategyBuilder({
 
           {legs.length > 0 && (
             <button
-              title="Clear strategy"
+              type="button"
+              title="Start a new strategy"
               onClick={() => {
                 setSelectedStrategy('');
                 setActiveStrategyId(null);
@@ -224,10 +225,11 @@ export function StrategyBuilder({
                 onNamedStrategyChange?.(false);
                 onLegsChange([]);
               }}
-              aria-label="Clear strategy"
-              className="ui-icon-btn ui-icon-btn-danger"
+              aria-label="Start a new strategy"
+              className="ui-btn ui-btn-primary ui-btn-sm shrink-0"
             >
-              <X className="w-4 h-4" />
+              <Plus className="w-4 h-4" />
+              New strategy
             </button>
           )}
         </div>

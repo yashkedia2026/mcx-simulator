@@ -307,7 +307,7 @@ export function MarketDataPanel(props: Props) {
         <button type="button" disabled={!ready || !compatible || legs.length >= 20} onClick={() => add('SELL')}
           className="ui-btn ui-btn-negative px-2 text-xs">Add SELL at entry price</button>
       </div>
-      {!compatible && <p className="text-xs" style={{ color: 'var(--th-warning)' }}>Clear the current legs to start a different expiry or underlying. Manual legs stay in manual mode.</p>}
+      {!compatible && <p className="text-xs" style={{ color: 'var(--th-warning)' }}>Click <strong>New strategy</strong> to clear the current legs and start a different expiry or underlying. Manual legs stay in manual mode.</p>}
       {legs.length >= 20 && <p className="text-xs" style={{ color: 'var(--th-warning)' }}>20-leg limit reached.</p>}
       {addError && <p role="alert" className="text-xs" style={{ color: 'var(--th-warning)' }}>{addError}</p>}
       <p className="text-xs leading-relaxed" style={{ color: 'var(--th-muted)' }}>Entry premiums are snapshots. Quote updates never change your saved entry prices.</p>

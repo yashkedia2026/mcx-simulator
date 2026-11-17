@@ -60,7 +60,7 @@ The app polls the selected future, option and strategy legs in batches of up to 
 
 ### Vercel deployment
 
-The local `server/index.mjs` process is not available inside a static Vercel frontend. The repository now includes authenticated Vercel functions at `/api/market/status`, `/api/market/contracts`, and `/api/market/quotes`. Add these Vercel environment variables for the Production environment, then redeploy:
+The local `server/index.mjs` process is not available inside a static Vercel frontend. The repository includes one Vercel function, `api/market/[route].mjs`, that serves `/api/market/status`, `/api/market/contracts`, and `/api/market/quotes` (the last two require sign-in). Keep them in a single function: Eureka allows one session per app key, so separate functions would log in separately and invalidate each other's tokens. For the same reason, running the local server with the production key replaces the production session. Add these Vercel environment variables for the Production environment, then redeploy:
 
 ```dotenv
 EUREKA_BASE_URL=https://algo.eurekasecurities.net

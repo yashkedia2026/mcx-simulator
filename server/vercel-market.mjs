@@ -2,7 +2,8 @@ import { createMarketClient, DEFAULT_BASE_URL } from './market-client.mjs';
 
 // Vercel keeps warm function modules between requests, so the broker session,
 // instrument master and quote cache can be reused without exposing them to the
-// browser. Each function has its own safe in-memory cache on cold start.
+// browser. All market routes run in one function (api/market/[route].mjs) so
+// they share this client; a second function would open a second broker session.
 let client;
 
 export function getVercelMarketClient() {

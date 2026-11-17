@@ -245,7 +245,7 @@ export function StrategyBuilder({
                 disabled={legs.some(leg => leg.marketContract)}
                 onClick={() => chooseStrategy(name)}
                 title={template.description}
-                className="group rounded-lg border px-3 py-2 text-left transition-colors hover:border-brand/60 hover:bg-brand/5 disabled:cursor-not-allowed disabled:opacity-50"
+                className="group rounded-lg border px-3 py-2 text-left transition-colors hover:border-brand/60 hover:bg-brand/5 disabled:cursor-not-allowed disabled:opacity-70"
                 style={{ borderColor: 'var(--th-border2)', background: 'var(--th-input)' }}
               >
                 <span className="block text-xs font-medium truncate">{name}</span>

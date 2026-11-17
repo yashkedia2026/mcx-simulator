@@ -62,7 +62,10 @@ export function LoginPage({ isDark, onToggleTheme }: Props) {
     >
       {/* Theme toggle */}
       <button
+        type="button"
         onClick={onToggleTheme}
+        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
         className="absolute top-4 right-4 p-2 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
       >
         {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -80,7 +83,7 @@ export function LoginPage({ isDark, onToggleTheme }: Props) {
           </div>
           <div className="text-center">
             <h1 className="font-bold text-xl" style={{ color: 'var(--th-text)' }}>MCX Options Simulator</h1>
-            <p className="text-xs mt-1" style={{ color: 'var(--th-muted)' }}>Black-76 Model · Powered by Supabase</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--th-muted)' }}>Black-76 Model · Cloud-synced strategy workspace</p>
           </div>
         </div>
 
@@ -90,6 +93,7 @@ export function LoginPage({ isDark, onToggleTheme }: Props) {
             {(['signin', 'signup'] as const).map(m => (
               <button
                 key={m}
+                type="button"
                 onClick={() => switchMode(m)}
                 className="flex-1 py-2 text-xs font-semibold transition-colors"
                 style={{
@@ -112,41 +116,53 @@ export function LoginPage({ isDark, onToggleTheme }: Props) {
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           {/* Email */}
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--th-muted)' }} />
-            <input
-              type="email"
-              placeholder="Email address"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className={inputCls}
-              style={{ background: 'var(--th-input)', border: '1px solid var(--th-border2)', color: 'var(--th-text)', paddingLeft: 38 }}
-            />
+          <div>
+            <label htmlFor="auth-email" className="mb-1 block text-xs font-medium" style={{ color: 'var(--th-muted)' }}>Email address</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" aria-hidden="true" style={{ color: 'var(--th-muted)' }} />
+              <input
+                id="auth-email"
+                type="email"
+                placeholder="you@example.com"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className={inputCls}
+                style={{ background: 'var(--th-input)', border: '1px solid var(--th-border2)', color: 'var(--th-text)', paddingLeft: 38 }}
+              />
+            </div>
           </div>
 
           {/* Password (not needed for the forgot-password request) */}
           {mode !== 'forgot' && (
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--th-muted)' }} />
-              <input
-                type={showPwd ? 'text' : 'password'}
-                placeholder="Password"
-                required
-                minLength={6}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className={inputCls}
-                style={{ background: 'var(--th-input)', border: '1px solid var(--th-border2)', color: 'var(--th-text)', paddingLeft: 38, paddingRight: 40 }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPwd(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2"
-                style={{ color: 'var(--th-muted)' }}
-              >
-                {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+            <div>
+              <label htmlFor="auth-password" className="mb-1 block text-xs font-medium" style={{ color: 'var(--th-muted)' }}>Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" aria-hidden="true" style={{ color: 'var(--th-muted)' }} />
+                <input
+                  id="auth-password"
+                  type={showPwd ? 'text' : 'password'}
+                  placeholder="Enter your password"
+                  autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className={inputCls}
+                  style={{ background: 'var(--th-input)', border: '1px solid var(--th-border2)', color: 'var(--th-text)', paddingLeft: 38, paddingRight: 40 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd(v => !v)}
+                  aria-label={showPwd ? 'Hide password' : 'Show password'}
+                  title={showPwd ? 'Hide password' : 'Show password'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: 'var(--th-muted)' }}
+                >
+                  {showPwd ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
+                </button>
+              </div>
             </div>
           )}
 

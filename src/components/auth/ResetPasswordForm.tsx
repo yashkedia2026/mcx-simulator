@@ -46,7 +46,10 @@ export function ResetPasswordForm({ isDark, onToggleTheme }: Props) {
       style={{ background: 'var(--th-bg)' }}
     >
       <button
+        type="button"
         onClick={onToggleTheme}
+        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
         className="absolute top-4 right-4 p-2 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
       >
         {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -67,40 +70,52 @@ export function ResetPasswordForm({ isDark, onToggleTheme }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--th-muted)' }} />
-            <input
-              type={showPwd ? 'text' : 'password'}
-              placeholder="New password"
-              required
-              minLength={6}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className={inputCls}
-              style={{ background: 'var(--th-input)', border: '1px solid var(--th-border2)', color: 'var(--th-text)', paddingLeft: 38, paddingRight: 40 }}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPwd(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2"
-              style={{ color: 'var(--th-muted)' }}
-            >
-              {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+          <div>
+            <label htmlFor="reset-password" className="mb-1 block text-xs font-medium" style={{ color: 'var(--th-muted)' }}>New password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" aria-hidden="true" style={{ color: 'var(--th-muted)' }} />
+              <input
+                id="reset-password"
+                type={showPwd ? 'text' : 'password'}
+                placeholder="Enter a new password"
+                autoComplete="new-password"
+                required
+                minLength={6}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className={inputCls}
+                style={{ background: 'var(--th-input)', border: '1px solid var(--th-border2)', color: 'var(--th-text)', paddingLeft: 38, paddingRight: 40 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPwd(v => !v)}
+                aria-label={showPwd ? 'Hide password' : 'Show password'}
+                title={showPwd ? 'Hide password' : 'Show password'}
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+                style={{ color: 'var(--th-muted)' }}
+              >
+                {showPwd ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
+              </button>
+            </div>
           </div>
 
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--th-muted)' }} />
-            <input
-              type={showPwd ? 'text' : 'password'}
-              placeholder="Confirm new password"
-              required
-              minLength={6}
-              value={confirm}
-              onChange={e => setConfirm(e.target.value)}
-              className={inputCls}
-              style={{ background: 'var(--th-input)', border: '1px solid var(--th-border2)', color: 'var(--th-text)', paddingLeft: 38 }}
-            />
+          <div>
+            <label htmlFor="reset-password-confirm" className="mb-1 block text-xs font-medium" style={{ color: 'var(--th-muted)' }}>Confirm new password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" aria-hidden="true" style={{ color: 'var(--th-muted)' }} />
+              <input
+                id="reset-password-confirm"
+                type={showPwd ? 'text' : 'password'}
+                placeholder="Re-enter your new password"
+                autoComplete="new-password"
+                required
+                minLength={6}
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                className={inputCls}
+                style={{ background: 'var(--th-input)', border: '1px solid var(--th-border2)', color: 'var(--th-text)', paddingLeft: 38 }}
+              />
+            </div>
           </div>
 
           {error && <p className="text-xs text-negative text-center">{error}</p>}

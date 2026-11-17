@@ -1,9 +1,8 @@
-import { useState, useMemo, useEffect } from 'react';
+import { lazy, Suspense, useState, useMemo, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { StrategyBuilder } from '@/components/strategy/StrategyBuilder';
 import { DraftRecoveryDialog } from '@/components/strategy/DraftRecoveryDialog';
-import { PayoffChart } from '@/components/chart/PayoffChart';
 import { SummaryPanel } from '@/components/analysis/SummaryPanel';
 import { GreeksTable } from '@/components/analysis/GreeksTable';
 import { PnLTable } from '@/components/analysis/PnLTable';
@@ -19,6 +18,13 @@ import { expiryTime, marketPnL, matchesMarketContract, refreshMarketModel } from
 import type { OptionLeg } from '@/types';
 import { buildStrategyLegs } from '@/lib/strategies';
 import { ArrowDown, ArrowRight, BarChart3, MousePointerClick, Radio, Sparkles } from 'lucide-react';
+
+// ApexCharts is only needed after a strategy exists. Keep it out of the auth
+// and empty-workspace bundles so the sign-in screen loads without the chart
+// library and its renderer.
+const PayoffChart = lazy(() =>
+  import('@/components/chart/PayoffChart').then(module => ({ default: module.PayoffChart })),
+);
 
 const money = (value: number | null | undefined) => value == null ? '—' :
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(value);
@@ -290,14 +296,20 @@ export default function App() {
                 background: 'var(--th-card)',
               }}
             >
-              <PayoffChart
-                data={payoffData}
-                underlyingPrice={analysisPrice}
-                instrument={instrumentName}
-                breakevenPoints={metrics.breakevenPoints}
-                legs={analysisLegs}
-                isDark={isDark}
-              />
+              <Suspense fallback={
+                <div className="flex h-full items-center justify-center text-sm" style={{ color: 'var(--th-muted)' }} role="status">
+                  Loading payoff chart…
+                </div>
+              }>
+                <PayoffChart
+                  data={payoffData}
+                  underlyingPrice={analysisPrice}
+                  instrument={instrumentName}
+                  breakevenPoints={metrics.breakevenPoints}
+                  legs={analysisLegs}
+                  isDark={isDark}
+                />
+              </Suspense>
             </div>
 
             {hasLinkedLegs && <section className="flex flex-col gap-3" aria-label="Market P&L estimate">

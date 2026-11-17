@@ -36,7 +36,7 @@ interface MarketComboBoxProps {
   options: MarketOption[];
   ariaLabel: string;
   className: string;
-  style: React.CSSProperties;
+  style?: React.CSSProperties;
   onChange: (value: string) => void;
 }
 
@@ -185,8 +185,7 @@ export function MarketDataPanel(props: Props) {
   const ready = enabled && !error && isFreshQuote(quote, now) && isFreshQuote(futureQuote, now);
   const compatible = !legs.length || legs.every(leg => leg.marketContract &&
     leg.marketContract.underlyingInstrumentId === future?.id && option && expiryTime(leg.marketContract.expiry) === expiryTime(option.expiry));
-  const selectStyle = { background: 'var(--th-input)', border: '1px solid var(--th-border2)', color: 'var(--th-text)' };
-  const selectClass = 'w-full rounded-md px-2 py-2 text-xs min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors';
+  const selectClass = 'ui-input w-full';
   let connectionLabel = 'Not connected';
   if (enabled) connectionLabel = error ? 'Connection issue' : ready ? 'Receiving quotes' : 'Waiting for quotes';
   else if (contracts.length) connectionLabel = 'Ready';
@@ -203,116 +202,115 @@ export function MarketDataPanel(props: Props) {
     } catch (err) { setAddError(err instanceof Error ? err.message : 'Could not add this contract.'); }
   }
 
-  return <section className="mx-4 mt-4 rounded-xl p-3 flex flex-col gap-3" aria-label="Eureka market data"
-    style={{ border: '1px solid var(--th-border2)', background: 'var(--th-card)' }}>
+  return <section className="px-4 pt-4 pb-4 flex flex-col gap-3" aria-label="Eureka market data">
     <div className="flex items-center justify-between gap-2">
-      <div className="flex items-center gap-2"><Radio size={15} className="text-blue-400" />
+      <div className="flex items-center gap-2"><Radio size={15} className="text-brand-text" />
         <div>
           <span className="block text-xs font-semibold">Live MCX prices</span>
-          <span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Eureka connection</span>
+          <span className="block text-xs" style={{ color: 'var(--th-muted)' }}>Eureka connection</span>
         </div></div>
-      <span className="text-[10px]" style={{ color: ready ? 'var(--th-positive)' : 'var(--th-muted)' }}>{connectionLabel}</span>
+      <span className="text-xs" style={{ color: ready ? 'var(--th-positive)' : 'var(--th-muted)' }}>{connectionLabel}</span>
     </div>
-    {loading && <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs" style={{ borderColor: 'var(--th-border2)', color: 'var(--th-muted)' }}>
+    {loading && <div className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs" style={{ borderColor: 'var(--th-border2)', color: 'var(--th-muted)' }}>
       <RefreshCw size={12} className="animate-spin" /> Connecting to Eureka automatically…
     </div>}
     {error && <button type="button" onClick={onConnect} disabled={loading}
-      className="flex items-center justify-center gap-1.5 rounded-md bg-blue-600 py-2 text-xs text-white disabled:opacity-50">
+      className="ui-btn ui-btn-primary">
       <RefreshCw size={12} /> Retry live connection
     </button>}
     {status && !status.configured && <p className="text-xs leading-relaxed" style={{ color: 'var(--th-muted)' }}>
       Manual simulation is available now. To use live prices, add your Eureka app key and secret to the market-data server environment. Credentials stay out of the browser.
     </p>}
-    {!contracts.length && !error && <p className="text-[10px] leading-relaxed" style={{ color: 'var(--th-muted)' }}>
+    {!contracts.length && !error && <p className="text-xs leading-relaxed" style={{ color: 'var(--th-muted)' }}>
       Manual mode works without a website account. This sign-in only authenticates the server-side Eureka market-data connection.
     </p>}
     {error && <p role="status" className="text-xs" style={{ color: 'var(--th-warning)' }}>{error}</p>}
     {contracts.length > 0 && !symbols.length && <p className="text-xs" style={{ color: 'var(--th-warning)' }}>No unexpired MCX options were returned for this account.</p>}
     {symbols.length > 0 && <>
-      {future ? <div className="rounded-lg border px-3 py-2.5" style={{ borderColor: 'var(--th-border2)', background: 'var(--th-input)' }}>
+      {future ? <div className="rounded-xl border p-3" style={{ borderColor: 'var(--th-border)', background: 'var(--th-card)' }}>
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--th-muted)' }}>Selected future</span>
-          <span className="text-[10px] font-semibold" style={{ color: isFreshQuote(futureQuote, now) ? 'var(--th-positive)' : 'var(--th-muted)' }}>{isFreshQuote(futureQuote, now) ? 'LIVE' : 'Waiting'}</span>
+          <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--th-muted)' }}>Selected future</span>
+          <span className="text-xs font-semibold" style={{ color: isFreshQuote(futureQuote, now) ? 'var(--th-positive)' : 'var(--th-muted)' }}>{isFreshQuote(futureQuote, now) ? 'LIVE' : 'Waiting'}</span>
         </div>
         <strong className="mt-1 block text-2xl font-bold tracking-tight tabular-nums">{money(isFreshQuote(futureQuote, now) ? quoteMark(futureQuote) : null)}</strong>
-        <span className="text-[10px]" style={{ color: 'var(--th-muted)' }}>{future.symbol} future · {dateLabel(future.expiry)}</span>
+        <span className="text-xs" style={{ color: 'var(--th-muted)' }}>{future.symbol} future · {dateLabel(future.expiry)}</span>
         <div className="mt-2 grid grid-cols-3 gap-2 border-t pt-2 text-center text-xs" style={{ borderColor: 'var(--th-border2)' }}>
-          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Bid</span><strong className="mt-0.5 block text-sm font-semibold tabular-nums">{money(futureQuote?.bid)}</strong></div>
-          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Ask</span><strong className="mt-0.5 block text-sm font-semibold tabular-nums">{money(futureQuote?.ask)}</strong></div>
-          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Last trade</span><strong className="mt-0.5 block text-sm font-semibold tabular-nums">{money(futureQuote?.lastPrice)}</strong></div>
+          <div><span className="block text-xs" style={{ color: 'var(--th-muted)' }}>Bid</span><strong className="mt-1 block text-sm font-semibold tabular-nums">{money(futureQuote?.bid)}</strong></div>
+          <div><span className="block text-xs" style={{ color: 'var(--th-muted)' }}>Ask</span><strong className="mt-1 block text-sm font-semibold tabular-nums">{money(futureQuote?.ask)}</strong></div>
+          <div><span className="block text-xs" style={{ color: 'var(--th-muted)' }}>Last trade</span><strong className="mt-1 block text-sm font-semibold tabular-nums">{money(futureQuote?.lastPrice)}</strong></div>
         </div>
       </div> : <p className="text-xs" style={{ color: 'var(--th-warning)' }}>The matching underlying future is unavailable in the contract master. This option cannot be linked safely.</p>}
-      {option && <div className="rounded-lg border px-3 py-2.5" style={{ borderColor: 'var(--th-border2)', background: 'var(--th-input)' }}>
+      {option && <div className="rounded-xl border p-3" style={{ borderColor: 'var(--th-border)', background: 'var(--th-card)' }}>
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--th-muted)' }}>Selected option</span>
-          <span className="text-[10px] font-semibold" style={{ color: isFreshQuote(quote, now) ? 'var(--th-positive)' : 'var(--th-muted)' }}>{isFreshQuote(quote, now) ? 'LIVE' : 'Waiting'}</span>
+          <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--th-muted)' }}>Selected option</span>
+          <span className="text-xs font-semibold" style={{ color: isFreshQuote(quote, now) ? 'var(--th-positive)' : 'var(--th-muted)' }}>{isFreshQuote(quote, now) ? 'LIVE' : 'Waiting'}</span>
         </div>
         <strong className="mt-1 block text-xl font-bold tracking-tight tabular-nums">{money(isFreshQuote(quote, now) ? quoteMark(quote) : null)}</strong>
-        <span className="text-[10px]" style={{ color: 'var(--th-muted)' }}>
+        <span className="text-xs" style={{ color: 'var(--th-muted)' }}>
           {option.symbol} {option.strike?.toLocaleString('en-IN')} {option.kind} · {dateLabel(option.expiry)}
         </span>
         <div className="mt-2 grid grid-cols-4 gap-1 border-t pt-2 text-center text-xs" style={{ borderColor: 'var(--th-border2)' }}>
-          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Bid</span><strong className="mt-0.5 block text-xs font-semibold tabular-nums">{money(quote?.bid)}</strong></div>
-          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Ask</span><strong className="mt-0.5 block text-xs font-semibold tabular-nums">{money(quote?.ask)}</strong></div>
-          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Last</span><strong className="mt-0.5 block text-xs font-semibold tabular-nums">{money(quote?.lastPrice)}</strong></div>
-          <div><span className="block text-[10px]" style={{ color: 'var(--th-muted)' }}>Spread</span><strong className="mt-0.5 block text-xs font-semibold tabular-nums">{money(optionSpread)}</strong></div>
+          <div><span className="block text-xs" style={{ color: 'var(--th-muted)' }}>Bid</span><strong className="mt-1 block text-xs font-semibold tabular-nums">{money(quote?.bid)}</strong></div>
+          <div><span className="block text-xs" style={{ color: 'var(--th-muted)' }}>Ask</span><strong className="mt-1 block text-xs font-semibold tabular-nums">{money(quote?.ask)}</strong></div>
+          <div><span className="block text-xs" style={{ color: 'var(--th-muted)' }}>Last</span><strong className="mt-1 block text-xs font-semibold tabular-nums">{money(quote?.lastPrice)}</strong></div>
+          <div><span className="block text-xs" style={{ color: 'var(--th-muted)' }}>Spread</span><strong className="mt-1 block text-xs font-semibold tabular-nums">{money(optionSpread)}</strong></div>
         </div>
       </div>}
     </>}
     {symbols.length > 0 && <>
       <div className="grid grid-cols-2 gap-2">
-        <label htmlFor="market-commodity" className="text-[11px]">Commodity
+        <label htmlFor="market-commodity" className="text-xs">Commodity
           <MarketComboBox id="market-commodity" ariaLabel="Live commodity" value={symbol}
-            options={symbols.map(s => ({ value: s, label: s }))} className={selectClass} style={selectStyle}
+            options={symbols.map(s => ({ value: s, label: s }))} className={selectClass}
             onChange={next => { setSymbolChoice(next); setOptionChoice(0); setAddError(''); }} />
         </label>
-        <label htmlFor="market-expiry" className="text-[11px]">Option expiry
+        <label htmlFor="market-expiry" className="text-xs">Option expiry
           <MarketComboBox id="market-expiry" ariaLabel="Live option expiry" value={expiry}
-            options={expiries.map(next => ({ value: next, label: dateLabel(next) }))} className={selectClass} style={selectStyle}
+            options={expiries.map(next => ({ value: next, label: dateLabel(next) }))} className={selectClass}
             onChange={next => { setExpiryChoice(next); setOptionChoice(0); setAddError(''); }} />
         </label>
-        <label htmlFor="market-option-type" className="text-[11px]">Option type
+        <label htmlFor="market-option-type" className="text-xs">Option type
           <MarketComboBox id="market-option-type" ariaLabel="Live option type" value={kind}
-            options={[{ value: 'CE', label: 'Call · CE' }, { value: 'PE', label: 'Put · PE' }]} className={selectClass} style={selectStyle}
+            options={[{ value: 'CE', label: 'Call · CE' }, { value: 'PE', label: 'Put · PE' }]} className={selectClass}
             onChange={next => { setKind(next as 'CE' | 'PE'); setOptionChoice(0); setAddError(''); }} />
         </label>
-        <label htmlFor="market-strike" className="text-[11px]">Strike
+        <label htmlFor="market-strike" className="text-xs">Strike
           <MarketComboBox id="market-strike" ariaLabel="Live strike" value={option?.id == null ? '' : String(option.id)}
-            options={options.map(c => ({ value: String(c.id), label: c.strike?.toLocaleString('en-IN') ?? String(c.id) }))} className={selectClass} style={selectStyle}
+            options={options.map(c => ({ value: String(c.id), label: c.strike?.toLocaleString('en-IN') ?? String(c.id) }))} className={selectClass}
             onChange={next => { setOptionChoice(Number(next)); setAddError(''); }} />
         </label>
       </div>
-      <label className="block text-[11px]">Lots to add
-        <input type="number" min={1} max={1000} step={1} value={lotsText} inputMode="numeric" aria-label="Lots to add" className="mt-1 w-full rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50" style={selectStyle}
+      <label className="block text-xs">Lots to add
+        <input type="number" min={1} max={1000} step={1} value={lotsText} inputMode="numeric" aria-label="Lots to add" className="ui-input mt-1 w-full"
           onFocus={event => event.currentTarget.select()}
           onChange={event => setLotsText(event.target.value)} />
       </label>
-      <label className="block text-[11px]">Entry price / LTP <span style={{ color: 'var(--th-muted)' }}>(editable)</span>
-        <input type="number" min={0.01} step="any" value={entryText} inputMode="decimal" aria-label="Entry price or LTP" className="mt-1 w-full rounded-md px-2 py-2 text-sm font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500/50" style={selectStyle}
+      <label className="block text-xs">Entry price / LTP <span style={{ color: 'var(--th-muted)' }}>(editable)</span>
+        <input type="number" min={0.01} step="any" value={entryText} inputMode="decimal" aria-label="Entry price or LTP" className="ui-input mt-1 w-full font-semibold"
           onFocus={event => {
             event.currentTarget.select();
             if (option) setEntryDraft({ optionId: option.id, text: event.currentTarget.value });
           }}
           onChange={event => { if (option) setEntryDraft({ optionId: option.id, text: event.target.value }); }} />
-        <span className="mt-1 block text-[10px]" style={{ color: 'var(--th-muted)' }}>Defaults to the live LTP. Change it to replay your original fill price.</span>
+        <span className="mt-1 block text-xs" style={{ color: 'var(--th-muted)' }}>Defaults to the live LTP. Change it to replay your original fill price.</span>
       </label>
-      {quote && <p className="text-[10px]" style={{ color: 'var(--th-muted)' }}>
+      {quote && <p className="text-xs" style={{ color: 'var(--th-muted)' }}>
         Retrieved {new Date(quote.receivedAt).toLocaleTimeString('en-IN')} · {!enabled ? 'Waiting for connection' : isFreshQuote(quote, now) ? '5s refresh' : 'Stale'}
         {quote.lastTradedAt ? ' · Trade ' + new Date(quote.lastTradedAt).toLocaleTimeString('en-IN') : ' · Trade time unavailable'}
       </p>}
-      {option && <p className="text-[10px]" style={{ color: 'var(--th-muted)' }}>
+      {option && <p className="text-xs" style={{ color: 'var(--th-muted)' }}>
         Broker lot: {option.lotSize} · P&amp;L per ₹1 move / lot: {money(option.lotSize * option.priceMultiplier)}
       </p>}
       <div className="grid grid-cols-2 gap-2">
         <button type="button" disabled={!ready || !compatible || legs.length >= 20} onClick={() => add('BUY')}
-          className="rounded-md py-2 text-xs font-bold bg-emerald-600 text-white disabled:opacity-40">Add BUY at entry price</button>
+          className="ui-btn ui-btn-positive px-2 text-xs">Add BUY at entry price</button>
         <button type="button" disabled={!ready || !compatible || legs.length >= 20} onClick={() => add('SELL')}
-          className="rounded-md py-2 text-xs font-bold bg-red-600 text-white disabled:opacity-40">Add SELL at entry price</button>
+          className="ui-btn ui-btn-negative px-2 text-xs">Add SELL at entry price</button>
       </div>
       {!compatible && <p className="text-xs" style={{ color: 'var(--th-warning)' }}>Clear the current legs to start a different expiry or underlying. Manual legs stay in manual mode.</p>}
       {legs.length >= 20 && <p className="text-xs" style={{ color: 'var(--th-warning)' }}>20-leg limit reached.</p>}
       {addError && <p role="alert" className="text-xs" style={{ color: 'var(--th-warning)' }}>{addError}</p>}
-      <p className="text-[10px] leading-relaxed" style={{ color: 'var(--th-muted)' }}>Entry premiums are snapshots. Quote updates never change your saved entry prices.</p>
+      <p className="text-xs leading-relaxed" style={{ color: 'var(--th-muted)' }}>Entry premiums are snapshots. Quote updates never change your saved entry prices.</p>
     </>}
   </section>;
 }

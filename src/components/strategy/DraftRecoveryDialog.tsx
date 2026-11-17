@@ -29,7 +29,7 @@ export function DraftRecoveryDialog({ draft, onRestore, onDiscard }: Props) {
         }}
       >
         <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 text-blue-400">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-brand-text">
             <Clock3 className="h-5 w-5" />
           </span>
           <div>
@@ -39,30 +39,28 @@ export function DraftRecoveryDialog({ draft, onRestore, onDiscard }: Props) {
             <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--th-muted)' }}>
               We found a draft with {draft.legs.length} {draft.legs.length === 1 ? 'leg' : 'legs'} saved on {savedAt}.
             </p>
-            <p className="mt-2 text-[11px] leading-relaxed" style={{ color: 'var(--th-muted)' }}>
+            <p className="mt-2 text-xs leading-relaxed" style={{ color: 'var(--th-muted)' }}>
               This is a recovery copy, separate from your named saved strategies. Discarding it will not delete a saved strategy.
             </p>
           </div>
         </div>
 
-        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onDiscard}
-            className="flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors hover:bg-red-500/10 hover:text-red-400"
-            style={{ color: 'var(--th-muted)' }}
+            className="ui-btn ui-btn-ghost"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-4 w-4" />
             Discard draft
           </button>
           <button
             type="button"
             autoFocus
             onClick={onRestore}
-            className="flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
-            style={{ background: '#2979ff', color: '#fff' }}
+            className="ui-btn ui-btn-primary"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
+            <RotateCcw className="h-4 w-4" />
             Restore draft
           </button>
         </div>

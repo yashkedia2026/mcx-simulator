@@ -17,7 +17,7 @@ export function ResetPasswordForm({ isDark, onToggleTheme }: Props) {
   const [error, setError]       = useState('');
   const [busy, setBusy]         = useState(false);
 
-  const inputCls = 'w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors';
+  const inputCls = 'w-full rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 transition-colors';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,7 +49,7 @@ export function ResetPasswordForm({ isDark, onToggleTheme }: Props) {
         onClick={onToggleTheme}
         className="absolute top-4 right-4 p-2 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
       >
-        {isDark ? <Sun className="w-4 h-4 text-yellow-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+        {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
       </button>
 
       <div
@@ -57,12 +57,12 @@ export function ResetPasswordForm({ isDark, onToggleTheme }: Props) {
         style={{ background: 'var(--th-card)', border: '1px solid var(--th-border)' }}
       >
         <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-orange-500/20 border border-orange-500/20">
-            <TrendingUp className="w-6 h-6 text-orange-400" />
+          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-brand/15 border border-brand/25">
+            <TrendingUp className="w-6 h-6 text-brand-text" />
           </div>
           <div className="text-center">
-            <h1 className="font-bold text-lg" style={{ color: 'var(--th-text)' }}>Set a New Password</h1>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--th-muted)' }}>Choose a new password for your account</p>
+            <h1 className="font-bold text-xl" style={{ color: 'var(--th-text)' }}>Set a New Password</h1>
+            <p className="text-xs mt-1" style={{ color: 'var(--th-muted)' }}>Choose a new password for your account</p>
           </div>
         </div>
 
@@ -103,13 +103,13 @@ export function ResetPasswordForm({ isDark, onToggleTheme }: Props) {
             />
           </div>
 
-          {error && <p className="text-xs text-red-400 text-center">{error}</p>}
+          {error && <p className="text-xs text-negative text-center">{error}</p>}
 
           <button
             type="submit"
             disabled={busy}
-            className="w-full py-2.5 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-60"
-            style={{ background: '#2979ff', color: '#fff' }}
+            className="w-full py-3 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-60"
+            style={{ background: 'var(--th-accent)', color: 'var(--th-on-accent)' }}
           >
             {busy ? 'Updating…' : 'Update Password'}
           </button>

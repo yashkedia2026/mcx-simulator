@@ -40,21 +40,6 @@ export function SaveLoadPanel({ strategies, atLimit, canSave, loading, suggested
     setName(suggestedName);
   }
 
-  const inputStyle: React.CSSProperties = {
-    background: 'var(--th-input)',
-    border: '1px solid var(--th-border2)',
-    color: 'var(--th-text)',
-  };
-
-  const badgeColor = (symbol: string) => {
-    const colors: Record<string, string> = {
-      GOLD: '#fbbf24', GOLDM: '#fbbf24', SILVER: '#9ca3af', SILVERM: '#9ca3af',
-      CRUDEOIL: '#6366f1', CRUDEOILM: '#6366f1', NATURALGAS: '#34d399',
-      COPPER: '#f97316', ZINC: '#22d3ee', ALUMINIUM: '#a78bfa',
-    };
-    return colors[symbol] ?? '#9ca3af';
-  };
-
   async function save() {
     if (!canSave || atLimit || saveLocked || savingRef.current || saving) return;
     const nextName = (name || suggestedName).trim();
@@ -81,8 +66,8 @@ export function SaveLoadPanel({ strategies, atLimit, canSave, loading, suggested
           type="text"
           placeholder={atLimit ? 'Limit reached (20)' : canSave ? 'Name this strategy…' : 'Add a position before saving'}
           disabled={atLimit || !canSave}
-          className="flex-1 rounded-md px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-colors"
-          style={inputStyle}
+          aria-label="Strategy name"
+          className="ui-input flex-1"
           value={name}
           onChange={e => { setName(e.target.value); setSaveLocked(false); setSavedMessage(''); savingRef.current = false; }}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void save(); } }}
@@ -90,24 +75,23 @@ export function SaveLoadPanel({ strategies, atLimit, canSave, loading, suggested
         <button
           disabled={!canSave || atLimit || saveLocked || saving}
           onClick={() => { void save(); }}
-          className="shrink-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold transition-colors disabled:opacity-40"
-          style={{ background: '#2979ff', color: '#fff' }}
+          className="ui-btn ui-btn-primary shrink-0"
         >
-          <Save className="w-3.5 h-3.5" />
+          <Save className="w-4 h-4" />
           {saving ? 'Saving…' : saveLocked ? 'Saved' : 'Save strategy'}
         </button>
       </div>
-      {activeStrategyName && <p className="text-[10px]" style={{ color: 'var(--th-muted)' }}>
+      {activeStrategyName && <p className="text-xs" style={{ color: 'var(--th-muted)' }}>
         Editing “{activeStrategyName}”. Changes to this loaded strategy are saved automatically; use Save strategy to create a separate copy.
       </p>}
-      {loading && <p role="status" className="text-[11px]" style={{ color: 'var(--th-muted)' }}>Loading your saved strategies…</p>}
-      {savedMessage && <p role="status" className="text-[11px] text-emerald-400">✓ {savedMessage} Opened below.</p>}
-      {activeStrategyName && autoSaveStatus !== 'idle' && <p role="status" className="text-[11px]" style={{ color: autoSaveStatus === 'error' ? 'var(--th-warning)' : autoSaveStatus === 'saved' ? 'var(--th-positive)' : 'var(--th-muted)' }}>
+      {loading && <p role="status" className="text-xs" style={{ color: 'var(--th-muted)' }}>Loading your saved strategies…</p>}
+      {savedMessage && <p role="status" className="text-xs text-positive">✓ {savedMessage} Opened below.</p>}
+      {activeStrategyName && autoSaveStatus !== 'idle' && <p role="status" className="text-xs" style={{ color: autoSaveStatus === 'error' ? 'var(--th-warning)' : autoSaveStatus === 'saved' ? 'var(--th-positive)' : 'var(--th-muted)' }}>
         {autoSaveStatus === 'saving' ? `Saving changes to “${activeStrategyName}”…` : autoSaveStatus === 'saved' ? `✓ Changes auto-saved to “${activeStrategyName}”.` : `Could not auto-save “${activeStrategyName}”. Try again after reconnecting.`}
       </p>}
-      {saveError && <p role="alert" className="text-[11px] text-red-400">{saveError}</p>}
+      {saveError && <p role="alert" className="text-xs text-negative">{saveError}</p>}
       {!loading && !saveError && strategies.length === 0 && (
-        <p className="text-[11px]" style={{ color: 'var(--th-muted)' }}>
+        <p className="text-xs" style={{ color: 'var(--th-muted)' }}>
           No saved strategies yet. Add a position, name it, and choose Save strategy.
         </p>
       )}
@@ -117,8 +101,9 @@ export function SaveLoadPanel({ strategies, atLimit, canSave, loading, suggested
         <div>
           <button
             onClick={() => setOpen(o => !o)}
-            className="flex items-center gap-1.5 w-full text-left py-1.5 transition-colors hover:opacity-80"
-            style={{ color: 'var(--th-muted)', fontSize: 10, fontWeight: 600 }}
+            aria-expanded={open}
+            className="flex min-h-10 items-center gap-2 w-full text-left transition-colors hover:opacity-80"
+            style={{ color: 'var(--th-muted)', fontSize: 12, fontWeight: 600 }}
           >
             {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
             <FolderOpen className="w-3 h-3" />
@@ -126,7 +111,7 @@ export function SaveLoadPanel({ strategies, atLimit, canSave, loading, suggested
           </button>
 
           {open && (
-            <div className="flex flex-col gap-1.5 mt-1">
+            <div className="flex flex-col gap-2 mt-1">
               {strategies.map(s => (
                 <div
                   key={s.id}
@@ -135,18 +120,17 @@ export function SaveLoadPanel({ strategies, atLimit, canSave, loading, suggested
                 >
                   <span
                     className="w-2 h-2 rounded-full shrink-0"
-                    style={{ background: badgeColor(s.instrument) }}
+                    style={{ background: 'var(--th-border2)' }}
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium truncate" style={{ color: 'var(--th-text)' }}>{s.name}</p>
-                    <p className="text-[10px]" style={{ color: 'var(--th-muted)' }}>
+                    <p className="text-xs" style={{ color: 'var(--th-muted)' }}>
                       {s.instrument} · {timeAgo(s.savedAt)}
                     </p>
                   </div>
                   <button
                     onClick={() => onLoad(s)}
-                    className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded transition-colors hover:opacity-80"
-                    style={{ background: 'rgba(41,121,255,0.15)', color: '#2979ff' }}
+                    className="ui-btn ui-btn-sm ui-btn-soft shrink-0"
                   >
                     Load
                   </button>
@@ -154,14 +138,13 @@ export function SaveLoadPanel({ strategies, atLimit, canSave, loading, suggested
                     <div className="flex gap-1">
                       <button
                         onClick={() => { onDelete(s.id); setConfirmDelete(null); }}
-                        className="text-[10px] font-bold text-red-400 hover:text-red-300 px-1"
+                        className="ui-btn ui-btn-sm ui-btn-ghost px-2 text-negative"
                       >
                         Yes
                       </button>
                       <button
                         onClick={() => setConfirmDelete(null)}
-                        className="text-[10px]"
-                        style={{ color: 'var(--th-muted)' }}
+                        className="ui-btn ui-btn-sm ui-btn-ghost px-2"
                       >
                         No
                       </button>
@@ -169,10 +152,10 @@ export function SaveLoadPanel({ strategies, atLimit, canSave, loading, suggested
                   ) : (
                     <button
                       onClick={() => setConfirmDelete(s.id)}
-                      className="shrink-0 p-1 rounded transition-colors hover:text-red-400 hover:bg-red-500/10"
-                      style={{ color: 'var(--th-muted)' }}
+                      aria-label={`Delete ${s.name}`}
+                      className="ui-icon-btn ui-icon-btn-sm ui-icon-btn-danger"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   )}
                 </div>

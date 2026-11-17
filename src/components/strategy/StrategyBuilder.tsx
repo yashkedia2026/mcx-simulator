@@ -61,6 +61,8 @@ interface Props {
   onStrategySaved?: () => void;
   onNamedStrategyChange?: (active: boolean) => void;
   onLegsChange: Dispatch<SetStateAction<OptionLeg[]>>;
+  /** Corrections to how a live position was entered; the quote-driven model keeps following. */
+  onLegEntryChange?: Dispatch<SetStateAction<OptionLeg[]>>;
   onUnderlyingChange: (price: number) => void;
   onRateChange: (rate: number) => void;
   onLoadSnapshot: (followLive?: boolean) => void;
@@ -76,6 +78,7 @@ export function StrategyBuilder({
   onStrategySaved,
   onNamedStrategyChange,
   onLegsChange,
+  onLegEntryChange = onLegsChange,
   onUnderlyingChange,
   onRateChange,
   onLoadSnapshot,
@@ -127,7 +130,11 @@ export function StrategyBuilder({
   }
 
   function updateLeg(updated: OptionLeg) {
-    onLegsChange(previous => previous.map((l) => (l.id === updated.id ? updated : l)));
+    const current = legs.find(l => l.id === updated.id);
+    // Side, entry price and lots on a live leg are not quote-driven, so fixing
+    // them must not freeze the model. Changing IV or expiry is a scenario edit.
+    const entryOnly = !!current?.marketContract && current.iv === updated.iv && current.daysToExpiry === updated.daysToExpiry;
+    (entryOnly ? onLegEntryChange : onLegsChange)(previous => previous.map((l) => (l.id === updated.id ? updated : l)));
   }
 
   function deleteLeg(id: string) {
@@ -147,40 +154,33 @@ export function StrategyBuilder({
     applyStrategy(name);
   }
 
-  const inputStyle = {
-    background: 'var(--th-input)',
-    border: '1px solid var(--th-border2)',
-    color: 'var(--th-text)',
-  };
   const sectionDivider = { borderBottomColor: 'var(--th-divider)' };
   const labelStyle = { color: 'var(--th-muted)' };
 
-  const inputCls =
-    'w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-colors';
+  const inputCls = 'ui-input w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
 
-  const selectCls =
-    'w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50 cursor-pointer transition-colors';
+  const selectCls = 'ui-input ui-select w-full';
 
   return (
-    <div className="flex flex-col gap-0">
+    <div className="flex flex-col border-t" style={{ borderTopColor: 'var(--th-divider)' }}>
 
       {/* ── Market inputs ── */}
       {legs.length > 0 && <div className="px-4 pt-4 pb-4 border-b" style={sectionDivider}>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-[10px] font-semibold uppercase tracking-widest" style={labelStyle}>1 · Set the market</p>
-            <span className="text-[10px]" style={{ color: 'var(--th-muted)' }}>Model settings</span>
+            <p className="text-xs font-semibold uppercase tracking-wide" style={labelStyle}>1 · Set the market</p>
+            <span className="text-xs" style={{ color: 'var(--th-muted)' }}>Model settings</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label htmlFor="reference-futures-price" className="text-[11px] block mb-1.5" style={labelStyle}>Reference futures price (₹)</label>
-              <input id="reference-futures-price" type="number" inputMode="decimal" aria-label="Reference futures price" className={inputCls} style={inputStyle}
+              <label htmlFor="reference-futures-price" className="text-xs block mb-2" style={labelStyle}>Reference futures price (₹)</label>
+              <input id="reference-futures-price" type="number" inputMode="decimal" aria-label="Reference futures price" className={inputCls}
                 value={Number(underlyingPrice.toFixed(4))} step={1} min={0.01}
                 onFocus={e => e.currentTarget.select()}
                 onChange={(e) => { const value = Number(e.target.value); if (Number.isFinite(value) && value > 0) onUnderlyingChange(value); }} />
             </div>
             <div>
-              <label htmlFor="interest-rate" className="text-[11px] block mb-1.5" style={labelStyle}>Interest rate (%)</label>
-              <input id="interest-rate" type="number" inputMode="decimal" aria-label="Interest rate" className={inputCls} style={inputStyle}
+              <label htmlFor="interest-rate" className="text-xs block mb-2" style={labelStyle}>Interest rate (%)</label>
+              <input id="interest-rate" type="number" inputMode="decimal" aria-label="Interest rate" className={inputCls}
                 value={riskFreeRate} step={0.25} min={0} max={20}
                 onFocus={e => e.currentTarget.select()}
                 onChange={(e) => { const value = Number(e.target.value); if (Number.isFinite(value) && value >= 0 && value <= 20) onRateChange(value); }} />
@@ -191,15 +191,14 @@ export function StrategyBuilder({
       {/* ── Strategy template ── */}
       <div className="px-4 pt-4 pb-4 border-b" style={sectionDivider}>
         <div className="flex items-center justify-between mb-1">
-          <p className="text-[10px] font-semibold uppercase tracking-widest" style={labelStyle}>2 · Choose a strategy</p>
-          <span className="text-[10px]" style={{ color: 'var(--th-muted)' }}>Start faster</span>
+          <p className="text-xs font-semibold uppercase tracking-wide" style={labelStyle}>2 · Choose a strategy</p>
+          <span className="text-xs" style={{ color: 'var(--th-muted)' }}>Start faster</span>
         </div>
-        <p className="text-[11px] leading-relaxed mb-3" style={{ color: 'var(--th-muted)' }}>Pick a view on the market. You can edit the positions after loading.</p>
+        <p className="text-xs leading-relaxed mb-3" style={{ color: 'var(--th-muted)' }}>Pick a view on the market. You can edit the positions after loading.</p>
         <div className="flex gap-2 items-center">
           <select
             disabled={legs.some(leg => leg.marketContract)}
             className={selectCls}
-            style={inputStyle}
             value={selectedStrategy}
             onChange={(e) => {
               const name = e.target.value;
@@ -225,15 +224,15 @@ export function StrategyBuilder({
                 onNamedStrategyChange?.(false);
                 onLegsChange([]);
               }}
-              className="shrink-0 p-1.5 rounded transition-colors hover:bg-red-500/10 hover:text-red-400"
-              style={{ color: 'var(--th-muted)' }}
+              aria-label="Clear strategy"
+              className="ui-icon-btn ui-icon-btn-danger"
             >
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
         <div className="mt-3">
-          <p className="text-[10px] font-medium mb-2" style={{ color: 'var(--th-muted)' }}>Popular starting points</p>
+          <p className="text-xs font-medium mb-2" style={{ color: 'var(--th-muted)' }}>Popular starting points</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {['Long Call', 'Long Put', 'Bull Call Spread', 'Long Straddle'].map(name => {
               const template = PREBUILT_STRATEGIES.find(strategy => strategy.name === name);
@@ -244,11 +243,11 @@ export function StrategyBuilder({
                 disabled={legs.some(leg => leg.marketContract)}
                 onClick={() => chooseStrategy(name)}
                 title={template.description}
-                className="group rounded-lg border px-2.5 py-2 text-left transition-colors hover:border-blue-400/60 hover:bg-blue-500/5 disabled:cursor-not-allowed disabled:opacity-45"
+                className="group rounded-lg border px-3 py-2 text-left transition-colors hover:border-brand/60 hover:bg-brand/5 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ borderColor: 'var(--th-border2)', background: 'var(--th-input)' }}
               >
-                <span className="block text-[11px] font-medium truncate">{name}</span>
-                <span className="mt-0.5 block text-[10px] truncate" style={{ color: 'var(--th-muted)' }}>{template.description.split('. ')[0]}</span>
+                <span className="block text-xs font-medium truncate">{name}</span>
+                <span className="mt-1 block text-xs truncate" style={{ color: 'var(--th-muted)' }}>{template.description.split('. ')[0]}</span>
               </button>;
             })}
           </div>
@@ -258,10 +257,10 @@ export function StrategyBuilder({
       {/* ── Saved strategies ── */}
       <div className="px-4 pb-4 border-b pt-4" style={{ borderBottomColor: 'var(--th-divider)' }}>
         <div className="flex items-center justify-between mb-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--th-muted)' }}>
+          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--th-muted)' }}>
             Saved strategies
           </p>
-          <span className="text-[10px]" style={{ color: 'var(--th-muted)' }}>{strategies.length}/20</span>
+          <span className="text-xs" style={{ color: 'var(--th-muted)' }}>{strategies.length}/20</span>
         </div>
         <SaveLoadPanel
           strategies={strategies}
@@ -318,19 +317,19 @@ export function StrategyBuilder({
       {/* ── Legs ── */}
       <div className="px-4 pt-4 pb-4">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest" style={labelStyle}>
+          <p className="text-xs font-semibold uppercase tracking-wide" style={labelStyle}>
             3 · Check positions{legs.length > 0 && <span className="normal-case font-normal ml-1">({legs.length})</span>}
           </p>
-          {legs.length > 0 && <span className="text-[10px]" style={{ color: 'var(--th-muted)' }}>Edit below</span>}
+          {legs.length > 0 && <span className="text-xs" style={{ color: 'var(--th-muted)' }}>Edit below</span>}
         </div>
 
         {legs.length === 0 ? (
           <div
-            className="flex flex-col items-center justify-center gap-1 py-5 px-3 text-xs text-center border border-dashed rounded-lg mb-2"
+            className="flex flex-col items-center justify-center gap-1 py-6 px-3 text-xs text-center border border-dashed rounded-lg mb-2"
             style={{ color: 'var(--th-muted)', borderColor: 'var(--th-border2)' }}
           >
             <span>No positions yet</span>
-            <span className="text-[10px]">Choose a strategy above or add a buy/sell position.</span>
+            <span className="text-xs">Choose a strategy above or add a buy/sell position.</span>
           </div>
         ) : (
           <div className="flex flex-col gap-2 mb-2">
@@ -347,10 +346,9 @@ export function StrategyBuilder({
         <button
           onClick={addLeg}
           disabled={legs.some(leg => leg.marketContract) || legs.length >= 20}
-          className="flex items-center gap-1.5 w-full justify-center px-3 py-2 rounded-lg border border-dashed transition-colors text-xs hover:opacity-80"
-          style={{ color: 'var(--th-muted)', borderColor: 'var(--th-border2)' }}
+          className="ui-btn ui-btn-dashed w-full"
         >
-          <Plus className="w-3.5 h-3.5" />
+          <Plus className="w-4 h-4" />
           Add position
         </button>
       </div>

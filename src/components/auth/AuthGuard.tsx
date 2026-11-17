@@ -24,7 +24,7 @@ export function AuthGuard({ session, loading, passwordRecovery, isDark, onToggle
           className="w-full max-w-lg rounded-2xl p-8"
           style={{ background: 'var(--th-card)', border: '1px solid var(--th-border)' }}
         >
-          <h1 className="text-lg font-semibold">Connect your account</h1>
+          <h1 className="text-xl font-semibold">Connect your account</h1>
           <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--th-muted)' }}>
             Authentication and cloud strategy saving are enabled in this version. Add your Supabase project values to <code>.env.local</code>, then restart the dev server.
           </p>
@@ -47,7 +47,7 @@ export function AuthGuard({ session, loading, passwordRecovery, isDark, onToggle
         style={{ background: 'var(--th-bg)' }}
       >
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
           <p className="text-xs" style={{ color: 'var(--th-muted)' }}>Loading…</p>
         </div>
       </div>

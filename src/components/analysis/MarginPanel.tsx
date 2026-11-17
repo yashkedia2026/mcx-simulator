@@ -19,7 +19,7 @@ interface LineProps { label: string; value: string; bold?: boolean; separator?: 
 function Line({ label, value, bold, separator }: LineProps) {
   return (
     <div
-      className="flex items-center justify-between py-1.5 px-4"
+      className="flex items-center justify-between py-2 px-4"
       style={{
         borderTop: separator ? '1px solid var(--th-border)' : undefined,
         fontWeight: bold ? 700 : 400,
@@ -29,8 +29,8 @@ function Line({ label, value, bold, separator }: LineProps) {
         {label}
       </span>
       <span
-        className={`text-xs font-mono tabular-nums ${bold ? 'text-base' : ''}`}
-        style={{ color: bold ? '#2979ff' : 'var(--th-text)', fontWeight: bold ? 700 : 500 }}
+        className={`text-xs tabular-nums ${bold ? 'text-base' : ''}`}
+        style={{ color: 'var(--th-text)', fontWeight: bold ? 700 : 500 }}
       >
         {value}
       </span>
@@ -49,13 +49,13 @@ export function MarginPanel({ legs, futuresPrice }: Props) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--th-muted)' }}>
+        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--th-muted)' }}>
           Estimated Margin Required
         </p>
-        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded"
-          style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)' }}>
-          <AlertTriangle className="w-2.5 h-2.5 text-yellow-400" />
-          <span className="text-[9px] font-semibold text-yellow-400">Estimate</span>
+        <div className="flex items-center gap-1 px-2 py-1 rounded-lg"
+          style={{ background: 'color-mix(in srgb, var(--th-warning) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--th-warning) 35%, transparent)' }}>
+          <AlertTriangle className="w-2.5 h-2.5 text-warning" />
+          <span className="text-xs font-semibold text-warning">Estimate</span>
         </div>
       </div>
 
@@ -78,13 +78,13 @@ export function MarginPanel({ legs, futuresPrice }: Props) {
         />
 
         <div className="px-4 py-2" style={{ borderTop: '1px solid var(--th-border)' }}>
-          <p className="text-[10px]" style={{ color: 'var(--th-muted)' }}>
+          <p className="text-xs" style={{ color: 'var(--th-muted)' }}>
             Based on typical MCX margin rates. For exact figures, use the{' '}
             <a
               href="https://zerodha.com/margin-calculator/SPAN/"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline text-blue-400"
+              className="underline text-brand-text"
             >
               Zerodha SPAN Calculator
             </a>

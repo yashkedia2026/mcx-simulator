@@ -14,7 +14,7 @@ export function ToastStack({ toasts, onDismiss }: Props) {
       {toasts.map(t => (
         <div
           key={t.id}
-          className="flex items-center gap-2 pl-3 pr-2 py-2.5 rounded-lg text-xs shadow-lg transition-colors"
+          className="flex items-center gap-2 pl-3 pr-2 py-3 rounded-lg text-xs shadow-lg transition-colors"
           style={{
             background: 'var(--th-card)',
             border: `1px solid color-mix(in srgb, var(${t.type === 'success' ? '--th-positive' : '--th-negative'}) 45%, transparent)`,
@@ -30,7 +30,7 @@ export function ToastStack({ toasts, onDismiss }: Props) {
           <span className="flex-1">{t.text}</span>
           <button
             onClick={() => onDismiss(t.id)}
-            className="shrink-0 p-0.5 rounded transition-colors hover:opacity-70"
+            className="shrink-0 p-1 rounded-lg transition-colors hover:opacity-70"
             style={{ color: 'var(--th-muted)' }}
           >
             <X className="w-3.5 h-3.5" />

@@ -17,9 +17,16 @@ function fmtINR(v: number): string {
   }).format(v);
 }
 
+/** Signed rupee amount; an amount that rounds to zero is shown as plain ₹0, never "-₹0". */
+function fmtSigned(v: number): string {
+  if (!Number.isFinite(v)) return '—';
+  if (Math.round(v) === 0) return '₹0';
+  return `${v > 0 ? '+' : ''}${fmtINR(v)}`;
+}
+
 function fmtPrice(v: number): string {
   if (!Number.isFinite(v)) return '—';
-  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 4 }).format(v);
+  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: Math.abs(v) >= 1000 ? 0 : 2 }).format(v);
 }
 
 interface PnLRow {
@@ -32,7 +39,7 @@ interface PnLRow {
   isStrike: boolean;
 }
 
-export function PnLTable({ underlyingPrice, riskFreeRate, legs, breakevenPoints, isDark }: Props) {
+export function PnLTable({ underlyingPrice, riskFreeRate, legs, breakevenPoints }: Props) {
   const [showStrikes, setShowStrikes] = useState(true);
 
   const rows = useMemo<PnLRow[]>(() => {
@@ -74,32 +81,33 @@ export function PnLTable({ underlyingPrice, riskFreeRate, legs, breakevenPoints,
   if (legs.length === 0) return null;
 
   const pnlColor = (v: number) =>
-    v > 0 ? 'var(--th-positive)' : v < 0 ? 'var(--th-negative)' : 'var(--th-muted)';
+    Math.round(v) === 0 ? 'var(--th-muted)' : v > 0 ? 'var(--th-positive)' : 'var(--th-negative)';
 
   const headerStyle: React.CSSProperties = {
     background: 'var(--th-input)',
     borderBottom: '1px solid var(--th-border)',
     color: 'var(--th-muted)',
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 600,
     textTransform: 'uppercase' as const,
-    letterSpacing: '0.08em',
+    letterSpacing: '0.03em',
+    whiteSpace: 'nowrap',
   };
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--th-muted)' }}>
+        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--th-muted)' }}>
           P&amp;L at Key Price Levels
         </p>
-        <label className="flex items-center gap-1.5 cursor-pointer">
+        <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
             checked={showStrikes}
             onChange={e => setShowStrikes(e.target.checked)}
-            className="w-3 h-3 accent-blue-500"
+            className="w-4 h-4 accent-brand"
           />
-          <span className="text-[10px]" style={{ color: 'var(--th-muted)' }}>Show strikes</span>
+          <span className="text-xs" style={{ color: 'var(--th-muted)' }}>Show strikes</span>
         </label>
       </div>
 
@@ -108,24 +116,24 @@ export function PnLTable({ underlyingPrice, riskFreeRate, legs, breakevenPoints,
         style={{ border: '1px solid var(--th-border)', background: 'var(--th-card)' }}
       >
         <div className="overflow-x-auto">
-        <table className="w-full text-xs min-w-[360px]">
+        <table className="w-full text-xs">
           <thead>
             <tr style={headerStyle}>
-              <th className="px-3 py-2 text-left">Price</th>
-              <th className="px-3 py-2 text-right">Move</th>
-              <th className="px-3 py-2 text-right">Expiry P&amp;L</th>
-              <th className="px-3 py-2 text-right" title="Theoretical P&L from the Black-76 model">Model P&amp;L</th>
+              <th className="px-2 sm:px-3 py-2 text-left">Price</th>
+              <th className="px-2 sm:px-3 py-2 text-right">Move</th>
+              <th className="px-2 sm:px-3 py-2 text-right">Expiry P&amp;L</th>
+              <th className="px-2 sm:px-3 py-2 text-right" title="Theoretical P&L from the Black-76 model">Model P&amp;L</th>
             </tr>
           </thead>
           <tbody>
             {rows.map(row => {
               const rowBg = row.isCMP
-                ? isDark ? 'rgba(41,121,255,0.12)' : 'rgba(41,121,255,0.07)'
+                ? 'color-mix(in srgb, var(--th-accent) 10%, transparent)'
                 : 'transparent';
               const borderLeft = row.isBreakeven
-                ? '3px solid #fbbf24'
+                ? '3px solid var(--th-warning)'
                 : row.isStrike
-                  ? `3px solid ${isDark ? '#374151' : '#d1d5db'}`
+                  ? '3px solid var(--th-border2)'
                   : '3px solid transparent';
 
               return (
@@ -138,25 +146,25 @@ export function PnLTable({ underlyingPrice, riskFreeRate, legs, breakevenPoints,
                     fontWeight: row.isCMP ? 700 : 400,
                   }}
                 >
-                  <td className="px-3 py-1.5" style={{ color: 'var(--th-text)' }}>
+                  <td className="px-2 sm:px-3 py-2 whitespace-nowrap" style={{ color: 'var(--th-text)' }}>
                     {row.isCMP && (
-                      <span className="mr-1 text-blue-400 font-bold">▶</span>
+                      <span className="mr-1 text-brand-text font-bold">▶</span>
                     )}
                     ₹{fmtPrice(row.price)}
                     {row.isBreakeven && (
-                      <span className="ml-1 text-[9px] font-semibold text-yellow-400">BE</span>
+                      <span className="ml-1 text-xs font-semibold text-warning">BE</span>
                     )}
                   </td>
-                  <td className="px-3 py-1.5 text-right tabular-nums" style={{ color: 'var(--th-muted)' }}>
+                  <td className="px-2 sm:px-3 py-2 text-right whitespace-nowrap tabular-nums" style={{ color: 'var(--th-muted)' }}>
                     {row.movePercent >= 0 ? '+' : ''}{row.movePercent.toFixed(1)}%
                   </td>
-                  <td className="px-3 py-1.5 text-right tabular-nums font-mono font-semibold"
+                  <td className="px-2 sm:px-3 py-2 text-right whitespace-nowrap tabular-nums font-semibold"
                     style={{ color: pnlColor(row.expiryPnL) }}>
-                    {row.expiryPnL >= 0 ? '+' : ''}{fmtINR(row.expiryPnL)}
+                    {fmtSigned(row.expiryPnL)}
                   </td>
-                  <td className="px-3 py-1.5 text-right tabular-nums font-mono"
+                  <td className="px-2 sm:px-3 py-2 text-right whitespace-nowrap tabular-nums"
                     style={{ color: pnlColor(row.currentPnL) }}>
-                    {row.currentPnL >= 0 ? '+' : ''}{fmtINR(row.currentPnL)}
+                    {fmtSigned(row.currentPnL)}
                   </td>
                 </tr>
               );

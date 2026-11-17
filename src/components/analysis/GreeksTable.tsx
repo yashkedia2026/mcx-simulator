@@ -33,16 +33,16 @@ function Row({ symbol, name, symbolColor, value, valueColor, description }: RowP
       className="last:border-0 transition-colors group"
       style={{ borderBottom: '1px solid var(--th-border)' }}
     >
-      <td className="px-4 py-2.5 w-28">
+      <td className="px-4 py-3 w-28">
         <div className="flex items-center gap-2">
           <span className={`text-base font-bold leading-none ${symbolColor} w-4 text-center`}>{symbol}</span>
-          <span className="text-[11px] font-medium" style={{ color: 'var(--th-muted)' }}>{name}</span>
+          <span className="text-xs font-medium" style={{ color: 'var(--th-muted)' }}>{name}</span>
         </div>
       </td>
-      <td className={`px-4 py-2.5 text-right font-mono text-sm font-bold tabular-nums ${valueColor}`}>
+      <td className={`px-4 py-3 text-right text-sm font-bold tabular-nums ${valueColor}`}>
         {value}
       </td>
-      <td className="px-4 py-2.5 text-[11px] transition-colors hidden sm:table-cell" style={{ color: 'var(--th-muted)' }}>
+      <td className="px-4 py-3 text-xs transition-colors hidden sm:table-cell" style={{ color: 'var(--th-muted)' }}>
         {description}
       </td>
     </tr>
@@ -60,9 +60,9 @@ export function GreeksTable({ greeks }: Props) {
     <table className="w-full text-sm min-w-[280px]">
       <thead>
         <tr style={{ borderBottom: '1px solid var(--th-border)', background: 'var(--th-input)' }}>
-          <th className="px-4 py-2.5 text-left">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--th-muted)' }}>
+          <th className="px-4 py-3 text-left">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--th-muted)' }}>
                 Greek
               </span>
               <span title={GREEKS_TOOLTIP} className="cursor-help">
@@ -70,28 +70,28 @@ export function GreeksTable({ greeks }: Props) {
               </span>
             </div>
           </th>
-          <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--th-muted)' }}>
+          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--th-muted)' }}>
             Value
           </th>
-          <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-widest hidden sm:table-cell" style={{ color: 'var(--th-muted)' }}>
+          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide hidden sm:table-cell" style={{ color: 'var(--th-muted)' }}>
             Interpretation
           </th>
         </tr>
       </thead>
       <tbody>
-        <Row symbol="Δ" name="Delta" symbolColor="text-blue-400"
-          value={fmtNum(greeks.delta, 4)} valueColor="text-blue-400"
+        <Row symbol="Δ" name="Delta" symbolColor="text-muted-foreground"
+          value={fmtNum(greeks.delta, 4)} valueColor="text-foreground"
           description={Number.isFinite(greeks.delta) ? `₹${fmtNum(Math.abs(greeks.delta), 0)} position change per ₹1 move` : 'Unavailable for these model inputs'} />
-        <Row symbol="Γ" name="Gamma" symbolColor="text-purple-400"
-          value={fmtNum(greeks.gamma, 5)} valueColor="text-purple-400"
+        <Row symbol="Γ" name="Gamma" symbolColor="text-muted-foreground"
+          value={fmtNum(greeks.gamma, 5)} valueColor="text-foreground"
           description="Rate of delta change per ₹1 underlying move" />
-        <Row symbol="Θ" name="Theta" symbolColor="text-red-400"
+        <Row symbol="Θ" name="Theta" symbolColor="text-muted-foreground"
           value={Number.isFinite(greeks.theta) ? `${fmtINR(greeks.theta)}/day` : '—'}
-          valueColor={!Number.isFinite(greeks.theta) ? 'text-slate-500 dark:text-slate-400' : thetaNegative ? 'text-red-400' : 'text-emerald-400'}
+          valueColor={!Number.isFinite(greeks.theta) ? 'text-muted-foreground' : thetaNegative ? 'text-negative' : 'text-positive'}
           description={!Number.isFinite(greeks.theta) ? 'Unavailable for these model inputs' : thetaNegative ? 'Position loses this value each day' : 'Position gains this value each day'} />
-        <Row symbol="V" name="Vega" symbolColor="text-emerald-400"
+        <Row symbol="V" name="Vega" symbolColor="text-muted-foreground"
           value={Number.isFinite(greeks.vega) ? `${fmtINR(greeks.vega)}/1%` : '—'}
-          valueColor={!Number.isFinite(greeks.vega) ? 'text-slate-500 dark:text-slate-400' : vegaPositive ? 'text-emerald-400' : 'text-red-400'}
+          valueColor={!Number.isFinite(greeks.vega) ? 'text-muted-foreground' : vegaPositive ? 'text-positive' : 'text-negative'}
           description={!Number.isFinite(greeks.vega) ? 'Unavailable for these model inputs' : vegaPositive ? 'Profits when IV rises 1%' : 'Loses when IV rises 1%'} />
       </tbody>
     </table>

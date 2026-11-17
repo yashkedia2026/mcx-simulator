@@ -19,7 +19,7 @@ function fmtINR(v: number | 'Unlimited'): string {
 
 function fmtPrice(v: number): string {
   if (!Number.isFinite(v)) return '—';
-  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 4 }).format(v);
+  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: Math.abs(v) >= 1000 ? 0 : 2 }).format(v);
 }
 
 interface CardProps {
@@ -35,13 +35,13 @@ interface CardProps {
 function Card({ icon: Icon, iconColor, label, value, valueColor, sub, tooltip }: CardProps) {
   return (
     <div
-      className="flex flex-col gap-1.5 px-3 py-2.5 rounded-lg transition-colors"
-      style={{ background: 'var(--th-card)', border: '1px solid var(--th-border)', maxHeight: 90 }}
+      className="flex flex-col gap-2 p-3 rounded-xl transition-colors"
+      style={{ background: 'var(--th-card)', border: '1px solid var(--th-border)' }}
     >
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2">
         <Icon className={`w-3 h-3 ${iconColor} shrink-0`} />
         <span
-          className="text-[10px] font-medium uppercase tracking-wider leading-none"
+          className="text-xs font-medium uppercase tracking-wide leading-none"
           title={tooltip}
           style={{
             color: 'var(--th-muted)',
@@ -52,7 +52,7 @@ function Card({ icon: Icon, iconColor, label, value, valueColor, sub, tooltip }:
         </span>
       </div>
       <p className={`text-sm font-bold leading-tight ${valueColor} truncate`}>{value}</p>
-      {sub && <p className="text-[10px] leading-none" style={{ color: 'var(--th-muted)' }}>{sub}</p>}
+      {sub && <p className="text-xs leading-none" style={{ color: 'var(--th-muted)' }}>{sub}</p>}
     </div>
   );
 }
@@ -74,58 +74,58 @@ export function SummaryPanel({ metrics }: Props) {
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
       <Card
         icon={TrendingUp}
-        iconColor="text-emerald-500"
+        iconColor="text-positive"
         label="Max Profit"
         value={fmtINR(maxProfit)}
         valueColor={
           maxProfit === 'Unlimited' || (maxProfit as number) >= 0
-            ? 'text-emerald-400'
-            : 'text-red-400'
+            ? 'text-positive'
+            : 'text-negative'
         }
       />
       <Card
         icon={TrendingDown}
-        iconColor="text-red-500"
+        iconColor="text-negative"
         label="Max Loss"
         value={fmtINR(maxLoss)}
         valueColor={
           maxLoss === 'Unlimited' || (maxLoss as number) < 0
-            ? 'text-red-400'
-            : 'text-emerald-400'
+            ? 'text-negative'
+            : 'text-positive'
         }
       />
       <Card
         icon={Crosshair}
-        iconColor="text-yellow-500"
+        iconColor="text-muted-foreground"
         label="Breakeven"
         value={
           breakevenPoints.length === 0
             ? '—'
             : breakevenPoints.map((b) => `₹${fmtPrice(b)}`).join(' · ')
         }
-        valueColor="text-yellow-400"
+        valueColor="text-foreground"
       />
       <Card
         icon={Wallet}
-        iconColor={isCredit ? 'text-emerald-500' : 'text-red-500'}
+        iconColor={isCredit ? 'text-positive' : 'text-negative'}
         label={isCredit ? 'Credit Received' : 'Debit Paid'}
         value={fmtINR(Math.abs(netPremium))}
-        valueColor={isCredit ? 'text-emerald-400' : 'text-red-400'}
+        valueColor={isCredit ? 'text-positive' : 'text-negative'}
       />
       <Card
         icon={BarChart2}
-        iconColor="text-blue-500"
+        iconColor="text-muted-foreground"
         label="Risk / Reward"
         value={rrRatio}
-        valueColor="text-blue-400"
+        valueColor="text-foreground"
         tooltip="Amount risked per ₹1 of potential profit. Lower = better risk efficiency."
       />
       <Card
         icon={Percent}
-        iconColor="text-indigo-400"
+        iconColor="text-muted-foreground"
         label="Prob. of Profit"
         value={Number.isFinite(probabilityOfProfit) ? `${probabilityOfProfit.toFixed(1)}%` : '—'}
-        valueColor={probabilityOfProfit >= 50 ? 'text-emerald-400' : 'text-slate-700 dark:text-slate-200'}
+        valueColor={probabilityOfProfit >= 50 ? 'text-positive' : 'text-foreground'}
         sub="Lognormal model estimate"
         tooltip="Approximate risk-neutral probability for one futures contract and expiry, using quantity-weighted RMS implied volatility. Unavailable for mixed futures or expiries."
       />

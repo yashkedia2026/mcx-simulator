@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Self-hosted variable font: no third-party font request, no render-blocking import chain. */
+@import "@fontsource-variable/geist/wght.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -6,21 +7,17 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: 'Inter', sans-serif;
-    --font-sans: 'Inter', sans-serif;
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
+    --font-heading: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-sans: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    /* Brand and data-meaning colours, usable as Tailwind classes (bg-brand, text-positive, ...). */
+    --color-brand: var(--th-accent);
+    --color-brand-text: var(--th-link);
+    --color-on-brand: var(--th-on-accent);
+    --color-positive: var(--th-positive);
+    --color-on-positive: var(--th-on-positive);
+    --color-negative: var(--th-negative);
+    --color-on-negative: var(--th-on-negative);
+    --color-warning: var(--th-warning);
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border: var(--border);
@@ -48,108 +45,212 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * Colour system. One accent (blue). Green, red and amber carry data meaning
+ * only: profit / buy, loss / sell, caution. Every colour in the app comes from
+ * these tokens; components never hard-code a hex value.
+ */
 :root {
-    --background: oklch(0.975 0.008 260);
-    --foreground: oklch(0.205 0.025 260);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.205 0.025 260);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.205 0.025 260);
-    --primary: oklch(0.55 0.22 260);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.95 0.015 260);
-    --secondary-foreground: oklch(0.25 0.03 260);
-    --muted: oklch(0.95 0.015 260);
-    --muted-foreground: oklch(0.48 0.035 260);
-    --accent: oklch(0.95 0.02 260);
-    --accent-foreground: oklch(0.25 0.03 260);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.88 0.025 260);
-    --input: oklch(0.88 0.025 260);
-    --ring: oklch(0.62 0.18 260);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+  --th-bg:          #f4f7fb;
+  --th-panel:       #ffffff;
+  --th-card:        #ffffff;
+  --th-input:       #f8fafc;
+  --th-border:      #d8e0ec;
+  --th-border2:     #cfd8e6;
+  --th-divider:     #e5eaf2;
+  --th-text:        #172033;
+  --th-muted:       #59677b;
+  --th-accent:      #2563eb;
+  --th-accent-hover:#1d4ed8;
+  --th-on-accent:   #ffffff;
+  --th-link:        #1d4ed8;
+  --th-positive:    #067647;
+  --th-on-positive: #ffffff;
+  --th-negative:    #c8233c;
+  --th-on-negative: #ffffff;
+  --th-warning:     #925a07;
+  --th-overlay:     rgba(15, 23, 42, 0.42);
+  --radius: 0.625rem;
 }
-
-/* Keep Tailwind/shadcn utility colors in step with the app theme. */
 .dark {
-    --background: oklch(0.12 0.025 270);
-    --foreground: oklch(0.965 0.012 260);
-    --card: oklch(0.19 0.035 270);
-    --card-foreground: oklch(0.965 0.012 260);
-    --popover: oklch(0.19 0.035 270);
-    --popover-foreground: oklch(0.965 0.012 260);
-    --primary: oklch(0.66 0.19 260);
-    --primary-foreground: oklch(0.15 0.025 270);
-    --secondary: oklch(0.24 0.035 270);
-    --secondary-foreground: oklch(0.93 0.015 260);
-    --muted: oklch(0.24 0.035 270);
-    --muted-foreground: oklch(0.72 0.025 260);
-    --accent: oklch(0.25 0.045 270);
-    --accent-foreground: oklch(0.965 0.012 260);
-    --border: oklch(0.31 0.04 270);
-    --input: oklch(0.31 0.04 270);
-    --ring: oklch(0.66 0.19 260);
-    --sidebar: oklch(0.15 0.03 270);
-    --sidebar-foreground: oklch(0.965 0.012 260);
-    --sidebar-primary: oklch(0.66 0.19 260);
-    --sidebar-primary-foreground: oklch(0.15 0.025 270);
-    --sidebar-accent: oklch(0.24 0.035 270);
-    --sidebar-accent-foreground: oklch(0.965 0.012 260);
-    --sidebar-border: oklch(0.31 0.04 270);
-    --sidebar-ring: oklch(0.66 0.19 260);
+  --th-bg:          #080b14;
+  --th-panel:       #0d1120;
+  --th-card:        #171d2f;
+  --th-input:       #0f1526;
+  --th-border:      rgba(184, 201, 230, 0.18);
+  --th-border2:     rgba(184, 201, 230, 0.25);
+  --th-divider:     rgba(184, 201, 230, 0.14);
+  --th-text:        #f4f7fb;
+  --th-muted:       #aeb8c8;
+  --th-accent:      #2563eb;
+  --th-accent-hover:#3b74f0;
+  --th-on-accent:   #ffffff;
+  --th-link:        #7aa9ff;
+  --th-positive:    #28d17c;
+  --th-on-positive: #04210f;
+  --th-negative:    #ff667d;
+  --th-on-negative: #2a0509;
+  --th-warning:     #fbbf24;
+  --th-overlay:     rgba(0, 0, 0, 0.68);
 }
 
+/* Tailwind/shadcn utility names resolve to the same tokens, so there is one palette. */
+:root, .dark {
+  --background: var(--th-bg);
+  --foreground: var(--th-text);
+  --card: var(--th-card);
+  --card-foreground: var(--th-text);
+  --popover: var(--th-card);
+  --popover-foreground: var(--th-text);
+  --primary: var(--th-accent);
+  --primary-foreground: var(--th-on-accent);
+  --secondary: var(--th-input);
+  --secondary-foreground: var(--th-text);
+  --muted: var(--th-input);
+  --muted-foreground: var(--th-muted);
+  --accent: var(--th-input);
+  --accent-foreground: var(--th-text);
+  --destructive: var(--th-negative);
+  --border: var(--th-border);
+  --input: var(--th-border2);
+  --ring: var(--th-accent);
+}
+
+/*
+ * Type system. One family; sizes 12 / 14 / 16 / 20 / 24px (text-xs, -sm,
+ * -base, -xl, -2xl). Nothing is set below 12px. Figures are tabular so prices
+ * and P&L line up in columns and do not shift as quotes update.
+ */
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    font-family: 'Inter', sans-serif;
   }
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
+    @apply bg-background text-foreground font-sans;
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 }
 
-/* ── App theme tokens ── */
-:root {
-  --th-bg:       #f4f7fb;
-  --th-panel:    #f8faff;
-  --th-card:     #ffffff;
-  --th-input:    #f8fafc;
-  --th-border:   #d8e0ec;
-  --th-border2:  #e3e9f2;
-  --th-text:     #172033;
-  --th-muted:    #59677b;
-  --th-divider:  #e5eaf2;
-  --th-positive: #078a52;
-  --th-negative: #d9384f;
-  --th-warning:  #a16207;
-  --th-link:     #1d4ed8;
-  --th-overlay:  rgba(15, 23, 42, 0.42);
+/*
+ * Controls. Every input, dropdown and button in the app is one of these, so
+ * they share one height (40px, 44px on touch screens), one radius, one focus
+ * ring and one disabled look.
+ */
+@layer base {
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--th-link);
+    outline-offset: 2px;
+  }
 }
-.dark {
-  --th-bg:       #080b14;
-  --th-panel:    #0d1120;
-  --th-card:     #171d2f;
-  --th-input:    #0f1526;
-  --th-border:   rgba(184, 201, 230, 0.18);
-  --th-border2:  rgba(184, 201, 230, 0.25);
-  --th-text:     #f4f7fb;
-  --th-muted:    #aeb8c8;
-  --th-divider:  rgba(184, 201, 230, 0.14);
-  --th-positive: #28d17c;
-  --th-negative: #ff667d;
-  --th-warning:  #fbbf24;
-  --th-link:     #72a7ff;
-  --th-overlay:  rgba(0, 0, 0, 0.68);
+@layer components {
+  .ui-input {
+    height: 2.5rem;
+    min-width: 0;
+    padding: 0 0.75rem;
+    border: 1px solid var(--th-border2);
+    border-radius: var(--radius-lg);
+    background-color: var(--th-input);
+    color: var(--th-text);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .ui-input::placeholder { color: var(--th-muted); }
+  .ui-input:hover:not(:disabled) { border-color: color-mix(in srgb, var(--th-accent) 45%, var(--th-border2)); }
+  .ui-input:focus-visible {
+    outline: none;
+    border-color: var(--th-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--th-accent) 28%, transparent);
+  }
+  .ui-input:disabled {
+    cursor: not-allowed;
+    color: var(--th-muted);
+    background-color: transparent;
+    border-style: dashed;
+  }
+  .ui-select {
+    appearance: none;
+    cursor: pointer;
+    padding-right: 2rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2359677b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1rem;
+  }
+  .dark .ui-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23aeb8c8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
+
+  .ui-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.5rem;
+    padding: 0 1rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s, filter 0.15s;
+  }
+  .ui-btn:disabled { cursor: not-allowed; opacity: 0.45; }
+  .ui-btn-sm { height: 2rem; padding: 0 0.75rem; font-size: 0.75rem; line-height: 1rem; }
+  .ui-btn-primary { background-color: var(--th-accent); color: var(--th-on-accent); }
+  .ui-btn-primary:hover:not(:disabled) { background-color: var(--th-accent-hover); }
+  .ui-btn-secondary { background-color: var(--th-input); border-color: var(--th-border2); color: var(--th-text); }
+  .ui-btn-secondary:hover:not(:disabled) { border-color: color-mix(in srgb, var(--th-accent) 55%, var(--th-border2)); }
+  .ui-btn-soft { background-color: color-mix(in srgb, var(--th-accent) 14%, transparent); color: var(--th-link); }
+  .ui-btn-soft:hover:not(:disabled) { background-color: color-mix(in srgb, var(--th-accent) 22%, transparent); }
+  .ui-btn-ghost { background-color: transparent; color: var(--th-muted); }
+  .ui-btn-ghost:hover:not(:disabled) { background-color: var(--th-input); color: var(--th-text); }
+  .ui-btn-dashed { background-color: transparent; border: 1px dashed var(--th-border2); color: var(--th-muted); font-weight: 500; }
+  .ui-btn-dashed:hover:not(:disabled) { border-color: var(--th-accent); color: var(--th-text); }
+  .ui-btn-positive { background-color: var(--th-positive); color: var(--th-on-positive); }
+  .ui-btn-negative { background-color: var(--th-negative); color: var(--th-on-negative); }
+  .ui-btn-positive:hover:not(:disabled), .ui-btn-negative:hover:not(:disabled) { filter: brightness(1.08); }
+
+  .ui-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--radius-lg);
+    color: var(--th-muted);
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .ui-icon-btn:hover:not(:disabled) { background-color: color-mix(in srgb, var(--th-muted) 16%, transparent); color: var(--th-text); }
+  .ui-icon-btn-danger:hover:not(:disabled) { background-color: color-mix(in srgb, var(--th-negative) 14%, transparent); color: var(--th-negative); }
+  .ui-icon-btn-sm { width: 2rem; height: 2rem; }
+
+  @media (pointer: coarse) {
+    .ui-input, .ui-btn { min-height: 2.75rem; }
+    .ui-icon-btn { min-width: 2.75rem; min-height: 2.75rem; }
+    .ui-btn-sm { min-height: 2.5rem; }
+    .ui-icon-btn-sm { min-width: 2.5rem; min-height: 2.5rem; }
+  }
+}
+
+/* Chart toolbar: quiet until used, in the same neutral and accent as the rest of the UI. */
+.apexcharts-toolbar .apexcharts-zoom-icon svg,
+.apexcharts-toolbar .apexcharts-zoomin-icon svg,
+.apexcharts-toolbar .apexcharts-zoomout-icon svg,
+.apexcharts-toolbar .apexcharts-pan-icon svg,
+.apexcharts-toolbar .apexcharts-reset-icon svg { fill: var(--th-muted); }
+.apexcharts-toolbar .apexcharts-selected svg,
+.apexcharts-toolbar div:hover svg { fill: var(--th-link) !important; }
+.apexcharts-toolbar { gap: 2px; }
+@media (pointer: coarse) {
+  /* Touch screens: give the chart tools a finger-sized target. */
+  .apexcharts-toolbar > * { display: flex !important; align-items: center; justify-content: center; min-width: 40px !important; min-height: 40px !important; margin: 0 !important; }
 }
 
 html.light { color-scheme: light; }

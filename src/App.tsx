@@ -18,7 +18,7 @@ import { MarketDataPanel } from '@/components/market/MarketDataPanel';
 import { expiryTime, marketPnL, matchesMarketContract, refreshMarketModel } from '@/lib/marketData';
 import type { OptionLeg } from '@/types';
 import { buildStrategyLegs } from '@/lib/strategies';
-import { ArrowRight, BarChart3, MousePointerClick, Radio, Sparkles } from 'lucide-react';
+import { ArrowDown, ArrowRight, BarChart3, MousePointerClick, Radio, Sparkles } from 'lucide-react';
 
 const money = (value: number | null | undefined) => value == null ? '—' :
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(value);
@@ -136,12 +136,6 @@ export default function App() {
       className="flex min-w-0 flex-col min-h-screen overflow-x-hidden lg:h-screen lg:overflow-hidden transition-colors duration-300"
       style={{ background: 'var(--th-bg)', color: 'var(--th-text)' }}
     >
-      {/* 3px gradient accent bar */}
-      <div
-        className="h-[3px] shrink-0"
-        style={{ background: 'linear-gradient(90deg, #2979ff 0%, #7c3aed 50%, #2979ff 100%)' }}
-      />
-
       <Header
         isDark={isDark}
         onToggleTheme={toggleTheme}
@@ -157,17 +151,23 @@ export default function App() {
           className="w-full min-w-0 lg:w-[420px] lg:shrink-0 lg:overflow-y-auto transition-colors duration-300 border-b lg:border-b-0 lg:border-r"
           style={{ borderColor: 'var(--th-border)' }}
         >
-          <div className="px-4 pt-4 pb-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-400">Strategy workspace</p>
+          <div className="px-4 pt-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-text">Strategy workspace</p>
             <div className="mt-1 flex items-end justify-between gap-3">
               <h1 className="text-base font-semibold tracking-tight">Build your setup</h1>
-              <span className="text-[10px]" style={{ color: 'var(--th-muted)' }}>{hasStrategy ? `${legs.length} leg${legs.length === 1 ? '' : 's'}` : 'Start here'}</span>
+              <span className="text-xs" style={{ color: 'var(--th-muted)' }}>{hasStrategy ? `${legs.length} leg${legs.length === 1 ? '' : 's'}` : 'Start here'}</span>
             </div>
             <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--th-muted)' }}>
               Start with live MCX quotes or model a scenario manually.
             </p>
+            {hasStrategy && (
+              <button type="button" className="ui-btn ui-btn-soft mt-3 w-full lg:hidden"
+                onClick={() => document.getElementById('results')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                <ArrowDown className="w-4 h-4" /> View payoff and P&amp;L
+              </button>
+            )}
             {draft.status !== 'idle' && (
-              <p role="status" className="mt-2 text-[10px]" style={{ color: draft.syncError ? 'var(--th-warning)' : 'var(--th-muted)' }}>
+              <p role="status" className="mt-2 text-xs" style={{ color: draft.syncError ? 'var(--th-warning)' : 'var(--th-muted)' }}>
                 {draft.status === 'draft-found' ? 'Unsaved draft found' : draft.status === 'saving' ? 'Saving draft…' : 'Draft saved'}
                 {draft.lastSavedAt && draft.status === 'saved' && ` · ${new Date(draft.lastSavedAt).toLocaleTimeString('en-IN')}`}
                 {draft.syncError && ' · local copy is safe; cloud sync unavailable'}
@@ -192,10 +192,10 @@ export default function App() {
                 setFollowMarket(true);
               }} />
           </div>
-          {underlyingId && <div className="px-4 pt-3 flex items-center justify-between gap-2 text-xs">
+          {underlyingId && <div className="px-4 pb-4 flex items-center justify-between gap-2 text-xs">
             <span style={{ color: 'var(--th-muted)' }}>{!followMarket ? 'Frozen scenario inputs' : modelIsCurrent ? 'Model inputs follow quotes' : 'Waiting · holding last model inputs'}
-              {lastModelUpdate !== null && <span className="block text-[10px]">As of {new Date(lastModelUpdate).toLocaleTimeString('en-IN')}</span>}</span>
-            <button type="button" className="text-blue-400 underline" onClick={() => {
+              {lastModelUpdate !== null && <span className="block text-xs">As of {new Date(lastModelUpdate).toLocaleTimeString('en-IN')}</span>}</span>
+            <button type="button" className="-my-3 py-3 text-brand-text underline" onClick={() => {
               if (followMarket) setFollowMarket(false); else { setFollowMarket(true); market.setEnabled(true); }
             }}>{followMarket ? 'Freeze snapshot' : 'Follow quotes'}</button>
           </div>}
@@ -213,6 +213,7 @@ export default function App() {
                 if (active) draft.clearDraft();
               }}
               onLegsChange={update => { setFollowMarket(false); setLegs(update); }}
+              onLegEntryChange={setLegs}
               onUnderlyingChange={value => { setFollowMarket(false); setUnderlyingPrice(value); }}
               onRateChange={value => { setFollowMarket(false); setRiskFreeRate(value); }}
               onLoadSnapshot={(followLive = false) => {
@@ -225,18 +226,18 @@ export default function App() {
         </div>
 
         {/* ── Right: chart → summary → greeks ── */}
-        <div className="flex min-w-0 flex-1 flex-col p-3 lg:p-4 gap-4 lg:overflow-y-auto">
+        <div id="results" className={`flex min-w-0 flex-1 flex-col p-4 gap-4 lg:overflow-y-auto ${hasStrategy ? '' : 'order-first lg:order-none'}`}>
           {!hasStrategy ? (
             <section
-              className="flex-1 min-h-[520px] rounded-xl border p-6 sm:p-10 flex items-center transition-colors duration-300"
-              style={{ borderColor: 'var(--th-border)', background: isDark ? 'linear-gradient(145deg, #12122a 0%, #101020 100%)' : 'linear-gradient(145deg, #ffffff 0%, #f8f9ff 100%)' }}
+              className="flex-1 lg:min-h-[520px] rounded-xl border p-4 sm:p-8 flex items-center transition-colors duration-300"
+              style={{ borderColor: 'var(--th-border)', background: 'var(--th-card)' }}
               aria-label="Start building a strategy"
             >
               <div className="w-full max-w-3xl mx-auto">
-                <div className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400 bg-blue-500/10 border border-blue-500/20">
+                <div className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-wide text-brand-text bg-brand/10 border border-brand/20">
                   <Sparkles className="w-3.5 h-3.5" /> Ready when you are
                 </div>
-                <h2 className="mt-5 max-w-xl text-2xl sm:text-3xl font-semibold tracking-tight">Build your first MCX options strategy</h2>
+                <h2 className="mt-6 max-w-xl text-2xl font-semibold tracking-tight">Build your first MCX options strategy</h2>
                 <p className="mt-3 max-w-xl text-sm leading-relaxed" style={{ color: 'var(--th-muted)' }}>
                   Choose a starting point and the payoff chart, P&amp;L, Greeks, and margin view will appear as you build.
                 </p>
@@ -247,25 +248,25 @@ export default function App() {
                     setFollowMarket(false);
                     setLegs(templateLegs);
                     jumpTo('strategy-controls');
-                  }} className="group text-left rounded-xl border p-4 transition-all hover:-translate-y-0.5 hover:border-blue-400/60 hover:bg-blue-500/5" style={{ borderColor: 'var(--th-border2)', background: 'var(--th-card)' }}>
+                  }} className="group text-left rounded-xl border p-4 transition-all hover:-translate-y-0.5 hover:border-brand/60 hover:bg-brand/5" style={{ borderColor: 'var(--th-border2)', background: 'var(--th-card)' }}>
                     <span className="flex items-center justify-between">
-                      <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400"><Sparkles className="w-4 h-4" /></span>
+                      <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-brand/15 text-brand-text"><Sparkles className="w-4 h-4" /></span>
                       <ArrowRight className="w-4 h-4 opacity-40 transition-transform group-hover:translate-x-1" />
                     </span>
                     <span className="mt-4 block text-sm font-semibold">Start with Long Call</span>
                     <span className="mt-1 block text-xs leading-relaxed" style={{ color: 'var(--th-muted)' }}>One click creates a simple bullish setup you can edit.</span>
                   </button>
-                  <button type="button" onClick={() => jumpTo('live-market')} className="group text-left rounded-xl border p-4 transition-all hover:-translate-y-0.5 hover:border-emerald-400/60 hover:bg-emerald-500/5" style={{ borderColor: 'var(--th-border2)', background: 'var(--th-card)' }}>
+                  <button type="button" onClick={() => jumpTo('live-market')} className="group text-left rounded-xl border p-4 transition-all hover:-translate-y-0.5 hover:border-brand/60 hover:bg-brand/5" style={{ borderColor: 'var(--th-border2)', background: 'var(--th-card)' }}>
                     <span className="flex items-center justify-between">
-                      <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400"><Radio className="w-4 h-4" /></span>
+                      <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-brand/15 text-brand-text"><Radio className="w-4 h-4" /></span>
                       <ArrowRight className="w-4 h-4 opacity-40 transition-transform group-hover:translate-x-1" />
                     </span>
                     <span className="mt-4 block text-sm font-semibold">Use live quotes</span>
                     <span className="mt-1 block text-xs leading-relaxed" style={{ color: 'var(--th-muted)' }}>Connect Eureka and add a quoted contract at bid or ask.</span>
                   </button>
-                  <button type="button" onClick={() => jumpTo('strategy-controls')} className="group text-left rounded-xl border p-4 transition-all hover:-translate-y-0.5 hover:border-violet-400/60 hover:bg-violet-500/5" style={{ borderColor: 'var(--th-border2)', background: 'var(--th-card)' }}>
+                  <button type="button" onClick={() => jumpTo('strategy-controls')} className="group text-left rounded-xl border p-4 transition-all hover:-translate-y-0.5 hover:border-brand/60 hover:bg-brand/5" style={{ borderColor: 'var(--th-border2)', background: 'var(--th-card)' }}>
                     <span className="flex items-center justify-between">
-                      <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-500/15 text-violet-400"><MousePointerClick className="w-4 h-4" /></span>
+                      <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-brand/15 text-brand-text"><MousePointerClick className="w-4 h-4" /></span>
                       <ArrowRight className="w-4 h-4 opacity-40 transition-transform group-hover:translate-x-1" />
                     </span>
                     <span className="mt-4 block text-sm font-semibold">Build manually</span>
@@ -273,20 +274,20 @@ export default function App() {
                   </button>
                 </div>
 
-                <div className="mt-8 flex flex-wrap items-center gap-2 text-[11px]" style={{ color: 'var(--th-muted)' }}>
-                  <BarChart3 className="w-4 h-4 text-blue-400" />
+                <div className="mt-8 flex flex-wrap items-center gap-2 text-xs" style={{ color: 'var(--th-muted)' }}>
+                  <BarChart3 className="w-4 h-4 text-brand-text" />
                   <span>Once a leg is added:</span>
-                  {['Payoff', 'P&L', 'Greeks', 'Margin'].map(item => <span key={item} className="rounded-full px-2.5 py-1 border" style={{ borderColor: 'var(--th-border2)' }}>{item}</span>)}
+                  {['Payoff', 'P&L', 'Greeks', 'Margin'].map(item => <span key={item} className="rounded-full px-3 py-1 border" style={{ borderColor: 'var(--th-border2)' }}>{item}</span>)}
                 </div>
               </div>
             </section>
           ) : <>
             {/* Chart */}
             <div
-              className="shrink-0 rounded-xl overflow-hidden transition-colors duration-300 h-[260px] sm:h-[320px] lg:h-[380px]"
+              className="shrink-0 rounded-xl overflow-hidden px-2 pt-3 transition-colors duration-300 h-[320px] sm:h-[340px] lg:h-[400px]"
               style={{
                 border: '1px solid var(--th-border)',
-                background: isDark ? '#12122a' : '#ffffff',
+                background: 'var(--th-card)',
               }}
             >
               <PayoffChart
@@ -299,22 +300,22 @@ export default function App() {
               />
             </div>
 
-            {hasLinkedLegs && <section className="flex flex-col gap-2.5" aria-label="Market P&L estimate">
+            {hasLinkedLegs && <section className="flex flex-col gap-3" aria-label="Market P&L estimate">
               <div
                 className="rounded-xl border px-4 py-3 transition-colors duration-300"
                 style={{ borderColor: 'var(--th-border)', background: 'var(--th-card)' }}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--th-muted)' }}>
+                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--th-muted)' }}>
                       Market P&amp;L estimate
                     </p>
-                    <p className="mt-1 text-[11px]" style={{ color: 'var(--th-muted)' }}>
+                    <p className="mt-1 text-xs" style={{ color: 'var(--th-muted)' }}>
                       Based on each leg&apos;s last traded price (LTP). Excludes fees and slippage.
                     </p>
                   </div>
                   <strong
-                    className="shrink-0 text-lg tabular-nums"
+                    className="shrink-0 text-xl tabular-nums"
                     style={{ color: liveMarketPnl == null ? 'var(--th-muted)' : liveMarketPnl >= 0 ? 'var(--th-positive)' : 'var(--th-negative)' }}
                   >
                     {money(liveMarketPnl)}
@@ -326,7 +327,7 @@ export default function App() {
                   </p>
                 )}
                 {liveMarketPnl === null && validMarketLegs && (
-                  <p className="mt-2 text-[10px]" style={{ color: 'var(--th-muted)' }}>
+                  <p className="mt-2 text-xs" style={{ color: 'var(--th-muted)' }}>
                     Waiting for fresh quotes for every leg.
                   </p>
                 )}
@@ -343,16 +344,16 @@ export default function App() {
             />
 
             {/* Strategy Summary */}
-            <section className="flex flex-col gap-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--th-muted)' }}>
+            <section className="flex flex-col gap-3">
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--th-muted)' }}>
                 Strategy Summary
               </p>
               <SummaryPanel metrics={metrics} isDark={isDark} />
             </section>
 
             {/* Position Greeks */}
-            <section className="flex flex-col gap-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--th-muted)' }}>
+            <section className="flex flex-col gap-3">
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--th-muted)' }}>
                 Position Greeks
               </p>
               <div

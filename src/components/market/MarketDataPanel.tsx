@@ -299,7 +299,7 @@ export function MarketDataPanel(props: Props) {
         {quote.lastTradedAt ? ' · Trade ' + new Date(quote.lastTradedAt).toLocaleTimeString('en-IN') : ' · Trade time unavailable'}
       </p>}
       {option && <p className="text-xs" style={{ color: 'var(--th-muted)' }}>
-        Broker lot: {option.lotSize} · P&amp;L per ₹1 move / lot: {money(option.lotSize * option.priceMultiplier)}
+        Lot size: {option.lotSize * option.priceMultiplier} qty · P&amp;L per ₹1 option move / lot: {money(option.lotSize * option.priceMultiplier)}
       </p>}
       <div className="grid grid-cols-2 gap-2">
         <button type="button" disabled={!ready || !compatible || legs.length >= 20} onClick={() => add('BUY')}

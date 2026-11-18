@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Save, Trash2, FolderOpen, ChevronDown, ChevronRight } from 'lucide-react';
+import { Save, Trash2, FolderOpen, ChevronDown, ChevronRight, Pencil, Check, X } from 'lucide-react';
 import type { SavedStrategy } from '@/hooks/useSavedStrategies';
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
   suggestedName: string;
   isDark: boolean;
   onSave: (name: string) => boolean | void | Promise<boolean | void>;
+  onRename: (id: string, name: string) => boolean | void | Promise<boolean | void>;
   saveError?: string | null;
   activeStrategyName?: string;
   autoSaveStatus?: 'idle' | 'saving' | 'saved' | 'error';
@@ -26,7 +27,7 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-export function SaveLoadPanel({ strategies, atLimit, canSave, loading, suggestedName, onSave, saveError, activeStrategyName, autoSaveStatus = 'idle', onLoad, onDelete }: Props) {
+export function SaveLoadPanel({ strategies, atLimit, canSave, loading, suggestedName, onSave, onRename, saveError, activeStrategyName, autoSaveStatus = 'idle', onLoad, onDelete }: Props) {
   const [name, setName] = useState(suggestedName);
   const [open, setOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -34,6 +35,9 @@ export function SaveLoadPanel({ strategies, atLimit, canSave, loading, suggested
   const [saveLocked, setSaveLocked] = useState(false);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [renameSaving, setRenameSaving] = useState(false);
 
   // Keep name in sync when suggestedName changes externally (template loaded)
   if (name !== suggestedName && suggestedName !== '' && name === '') {
@@ -55,6 +59,27 @@ export function SaveLoadPanel({ strategies, atLimit, canSave, loading, suggested
     } finally {
       savingRef.current = false;
       setSaving(false);
+    }
+  }
+
+  function startRename(strategy: SavedStrategy) {
+    setRenamingId(strategy.id);
+    setRenameValue(strategy.name);
+  }
+
+  function cancelRename() {
+    setRenamingId(null);
+    setRenameValue('');
+  }
+
+  async function commitRename() {
+    if (!renamingId || !renameValue.trim() || renameSaving) return;
+    setRenameSaving(true);
+    try {
+      const accepted = await onRename(renamingId, renameValue.trim());
+      if (accepted !== false) cancelRename();
+    } finally {
+      setRenameSaving(false);
     }
   }
 
@@ -123,11 +148,59 @@ export function SaveLoadPanel({ strategies, atLimit, canSave, loading, suggested
                     style={{ background: 'var(--th-border2)' }}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium truncate" style={{ color: 'var(--th-text)' }}>{s.name}</p>
+                    {renamingId === s.id ? (
+                      <input
+                        autoFocus
+                        value={renameValue}
+                        aria-label={`New name for ${s.name}`}
+                        className="ui-input h-8 w-full px-2 text-xs"
+                        onChange={event => setRenameValue(event.target.value)}
+                        onKeyDown={event => {
+                          if (event.key === 'Enter') { event.preventDefault(); void commitRename(); }
+                          if (event.key === 'Escape') { event.preventDefault(); cancelRename(); }
+                        }}
+                      />
+                    ) : (
+                      <p className="text-xs font-medium truncate" style={{ color: 'var(--th-text)' }}>{s.name}</p>
+                    )}
                     <p className="text-xs" style={{ color: 'var(--th-muted)' }}>
                       {s.instrument} · {timeAgo(s.savedAt)}
                     </p>
                   </div>
+                  {renamingId === s.id ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => { void commitRename(); }}
+                        disabled={!renameValue.trim() || renameSaving}
+                        aria-label={`Save new name for ${s.name}`}
+                        title="Save name"
+                        className="ui-icon-btn ui-icon-btn-sm"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelRename}
+                        disabled={renameSaving}
+                        aria-label="Cancel rename"
+                        title="Cancel"
+                        className="ui-icon-btn ui-icon-btn-sm"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => startRename(s)}
+                      aria-label={`Rename ${s.name}`}
+                      title="Rename strategy"
+                      className="ui-icon-btn ui-icon-btn-sm"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  )}
                   <button
                     onClick={() => onLoad(s)}
                     className="ui-btn ui-btn-sm ui-btn-soft shrink-0"

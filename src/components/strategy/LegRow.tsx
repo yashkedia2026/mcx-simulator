@@ -1,14 +1,17 @@
 import { useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { calculateIV } from '@/lib/impliedVolatility';
-import { expiryTime } from '@/lib/marketData';
+import { expiryTime, isFreshQuote } from '@/lib/marketData';
 import type { OptionLeg, Instrument } from '@/types';
+import type { MarketQuote } from '@/types/market';
 
 interface Props {
   leg: OptionLeg;
   instruments: Instrument[];
   futuresPrice: number;
   riskFreeRate: number;
+  quotes?: Record<number, MarketQuote>;
+  quoteNow?: number;
   onChange: (updated: OptionLeg) => void;
   onDelete: (id: string) => void;
 }
@@ -50,11 +53,14 @@ function NumberField({ value, isValid, onCommit, onBlur, ...rest }: NumberFieldP
   );
 }
 
-export function LegRow({ leg, instruments, futuresPrice, riskFreeRate, onChange, onDelete }: Props) {
+export function LegRow({ leg, instruments, futuresPrice, riskFreeRate, quotes, quoteNow = Date.now(), onChange, onDelete }: Props) {
   const update = (patch: Partial<OptionLeg>) => onChange({ ...leg, ...patch });
   const isBuy = leg.positionType === 'BUY';
   const isCE  = leg.optionType  === 'CE';
   const linkedContract = leg.marketContract;
+  const linkedQuote = linkedContract ? quotes?.[linkedContract.instrumentId] : undefined;
+  const liveLtp = linkedQuote && isFreshQuote(linkedQuote, quoteNow) && linkedQuote.lastPrice != null && Number.isFinite(linkedQuote.lastPrice)
+    ? linkedQuote.lastPrice : null;
 
   // Calibration belongs to an exact set of model inputs; a live quote or manual
   // change invalidates its badge without any delayed update to strategy state.
@@ -238,6 +244,18 @@ export function LegRow({ leg, instruments, futuresPrice, riskFreeRate, onChange,
             isValid={value => Number.isInteger(value) && value >= 1} onCommit={value => update({ lots: value })} />
         </div>
       </div>
+
+      {linkedContract && (
+        <div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2" style={{ background: 'var(--th-input)', border: '1px solid var(--th-border2)' }}>
+          <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--th-muted)' }}>LTP</span>
+          <strong className="text-lg tabular-nums" style={{ color: liveLtp == null ? 'var(--th-muted)' : 'var(--th-text)' }}>
+            {liveLtp == null ? '—' : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(liveLtp)}
+          </strong>
+          <span className="text-xs font-semibold" style={{ color: liveLtp == null ? 'var(--th-muted)' : 'var(--th-positive)' }}>
+            {liveLtp == null ? 'Waiting' : 'LIVE'}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

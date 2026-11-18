@@ -211,6 +211,8 @@ export default function App() {
               underlyingPrice={analysisPrice}
               riskFreeRate={riskFreeRate}
               followMarket={followMarket}
+              quotes={market.quotes}
+              quoteNow={market.now}
               isDark={isDark}
               userId={currentUserId}
               onStrategySaved={draft.clearDraft}

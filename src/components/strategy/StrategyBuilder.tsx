@@ -7,6 +7,7 @@ import { MCX_INSTRUMENTS, DEFAULT_INSTRUMENT, getStrikeGap, roundToStrike } from
 import { PREBUILT_STRATEGIES, buildStrategyLegs } from '@/lib/strategies';
 import { useSavedStrategies } from '@/hooks/useSavedStrategies';
 import type { OptionLeg } from '@/types';
+import type { MarketQuote } from '@/types/market';
 
 function newId() {
   return crypto.randomUUID();
@@ -56,6 +57,8 @@ interface Props {
   underlyingPrice: number;
   riskFreeRate: number;
   followMarket: boolean;
+  quotes?: Record<number, MarketQuote>;
+  quoteNow?: number;
   isDark: boolean;
   userId?: string | null;
   onStrategySaved?: () => void;
@@ -73,6 +76,8 @@ export function StrategyBuilder({
   underlyingPrice,
   riskFreeRate,
   followMarket,
+  quotes,
+  quoteNow,
   isDark,
   userId = null,
   onStrategySaved,
@@ -89,7 +94,7 @@ export function StrategyBuilder({
   const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>('idle');
   const lastAutoSavedFingerprint = useRef<string | null>(null);
   const failedAutoSaveFingerprint = useRef<string | null>(null);
-  const { strategies, loading: strategiesLoading, saveStrategy, updateStrategy, deleteStrategy, atLimit, error: saveError } = useSavedStrategies(userId);
+  const { strategies, loading: strategiesLoading, saveStrategy, updateStrategy, deleteStrategy, renameStrategy, atLimit, error: saveError } = useSavedStrategies(userId);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -286,6 +291,11 @@ export function StrategyBuilder({
             onNamedStrategyChange?.(true);
             return true;
           }}
+          onRename={async (id, name) => {
+            const renamed = await renameStrategy(id, name);
+            if (renamed && id === activeStrategyId) setActiveStrategyName(name.trim());
+            return renamed;
+          }}
           onLoad={(s) => {
             const loadedLegs = s.legs.map(leg => ({ ...leg, id: newId() }));
             const loadedRate = s.riskFreeRate ?? 6.5;
@@ -339,6 +349,7 @@ export function StrategyBuilder({
               <LegRow
                 key={leg.id} leg={leg} instruments={leg.marketContract ? [leg.instrument] : legs.length > 1 ? [legs[0].instrument] : MCX_INSTRUMENTS}
                 futuresPrice={underlyingPrice} riskFreeRate={riskFreeRate}
+                quotes={quotes} quoteNow={quoteNow}
                 onChange={updateLeg} onDelete={deleteLeg}
               />
             ))}
